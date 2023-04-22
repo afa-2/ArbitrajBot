@@ -30,6 +30,11 @@ logging.basicConfig(
 # Программа -----------------------------------------------------------------------------------------------------------
 bot = telebot.TeleBot(api)  # запускаем бота
 
+# сообение, что бот запущен
+for chat in chats_list:
+    if len(chat) > 0:
+        bot.send_message(chat, "Бот запущен", parse_mode="HTML")
+
 while True:
     try:
         start_time = time.time()  # Засекаем время начала выполнения кода
