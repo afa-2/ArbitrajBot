@@ -72,10 +72,10 @@ while True:
         elapsed_time = end_time - start_time  # Вычисляем затраченное время
         elapsed_time = round(elapsed_time, 2)
 
-        text = f"Полный круг. Время выполнения кода: {elapsed_time} секунд"
-        for chat in chats_list:
-            if len(chat) > 0:
-                bot.send_message(chat, text, parse_mode="HTML")
+        # text = f"Полный круг. Время выполнения кода: {elapsed_time} секунд"
+        # for chat in chats_list:
+        #     if len(chat) > 0:
+        #         bot.send_message(chat, text, parse_mode="HTML")
 
     except Exception as e:
         logging.error(e)
