@@ -4,6 +4,13 @@ import time
 import logging
 from stock_exchanges.get_inf_from_exchanges import get_orders_from_exchanges
 
+
+def _send_message(bot, chats_list, message):
+    for chat in chats_list:
+        if len(chat) > 0:
+            bot.send_message(chat, message, parse_mode="HTML")
+
+
 # Настройки -----------------------------------------------------------------------------------------------------------
 # забираем настройки из ini
 config = configparser.ConfigParser()
@@ -31,9 +38,8 @@ logging.basicConfig(
 bot = telebot.TeleBot(api)  # запускаем бота
 
 # сообение, что бот запущен
-for chat in chats_list:
-    if len(chat) > 0:
-        bot.send_message(chat, "Бот запущен", parse_mode="HTML")
+_send_message(bot, chats_list, "Бот запущен")
+
 
 while True:
     try:
@@ -69,9 +75,7 @@ while True:
                               f"{text_profit}\n"\
                               f"--------------------"
 
-                    for chat in chats_list:
-                        if len(chat) > 0:
-                            bot.send_message(chat, message, parse_mode="HTML")
+                    _send_message(bot, chats_list, message)
 
         end_time = time.time()  # Засекаем время окончания выполнения кода
         elapsed_time = end_time - start_time  # Вычисляем затраченное время
@@ -84,6 +88,7 @@ while True:
 
     except Exception as e:
         logging.error(e)
+        _send_message(bot, chats_list, "Какая-то ошибочка")
 
 
 bot.infinity_polling()
