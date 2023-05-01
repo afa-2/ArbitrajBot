@@ -95,10 +95,10 @@ def _get_orders_from_kucoin(currency):
     :param symbol: Символ валюты.
     :return: Список ордеров на продажу.
     """
+    currency = currency.upper()
     stock_market = 'kucoin'
     link_currency_pair = f'https://www.kucoin.com/ru/trade/{currency}-USDT'
-
-    symbol = currency.upper() + '-USDT'
+    symbol = currency + '-USDT'
     # URL для получения стакана заявок (order book)
     url = f"https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol={symbol}"
 
