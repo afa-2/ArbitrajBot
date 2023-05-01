@@ -90,7 +90,7 @@ while True:
         logging.error(e)
         _send_message(bot, chats_list, "Какая-то ошибочка")
 
-# бот
+
 bot.infinity_polling()
 
 
