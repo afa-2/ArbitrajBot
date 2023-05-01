@@ -47,7 +47,6 @@ while True:
         for currency in currencies:  # в отношении каждой валюты
             all_orders = get_orders_from_exchanges(currency)  # получаем все ордера
             for order in all_orders:  # в отношении каждого ордера
-                print(order)
                 # профит в процентах
                 data = order[5]
                 min_profit = min(data, key=lambda x: x[4])[4]
