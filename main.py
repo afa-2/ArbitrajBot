@@ -8,7 +8,7 @@ from stock_exchanges.get_inf_from_exchanges import get_orders_from_exchanges
 def _send_message(bot, chats_list, message):
     for chat in chats_list:
         if len(chat) > 0:
-            bot.send_message(chat, message, parse_mode="HTML")
+            bot.send_message(chat, message, parse_mode="HTML", disable_web_page_preview=True)
 
 
 # Настройки -----------------------------------------------------------------------------------------------------------
@@ -47,44 +47,60 @@ while True:
         for currency in currencies:  # в отношении каждой валюты
             all_orders = get_orders_from_exchanges(currency)  # получаем все ордера
             for order in all_orders:  # в отношении каждого ордера
-
+                print(order)
                 # профит в процентах
-                data = order[4]
-                min_profit = min(data, key=lambda x: x[-1])[-1]
-                max_profit = max(data, key=lambda x: x[-1])[-1]
+                data = order[5]
+                min_profit = min(data, key=lambda x: x[4])[4]
+                max_profit = max(data, key=lambda x: x[4])[4]
 
                 if max_profit >= min_profit_from_conf: # если профит больше или равен профиту из настроек
                     text_orders_sell = ''
-                    for order_sell in order[4]:
-                        string = f'Цена: {order_sell[1]}, кол-во: {order_sell[2]}\n'
+                    for order_sell in order[5]:  # в отношении каждого ордера на продажу
+                        string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
                         text_orders_sell += string
 
                     if min_profit != max_profit:
-                        text_profit = f'<b>Профит в %:</b> {min_profit}%-{max_profit}%'
+                        text_profit = f'{min_profit}%-{max_profit}%'
                     else:
-                        text_profit = f'<b>Профит в %:</b> {min_profit}'
+                        text_profit = f'{min_profit}%'
 
-                    # профит в $
-                    data_profit_in_dol = order[5]
-                    min_profit_in_dol = min(data_profit_in_dol, key=lambda x: x[-1])[-1]
-                    max_profit_in_dol = max(data_profit_in_dol, key=lambda x: x[-1])[-1]
-                    if min_profit_in_dol != max_profit_in_dol:
-                        text_profit_in_dol = f'<b>Профит в $:</b> {min_profit_in_dol}%-{max_profit_in_dol}%'
+                    # считаем профит в $
+                    cost_coins_ready_to_buy = float(order[3])  # цена монет, которые готовы купить
+                    number_of_coins_ready_to_buy = float(order[4])  # количество монет, которые готовы купить
+
+                    we_buy_coins = {'quantity': 0, 'cost': 0}
+                    remains_to_buy = number_of_coins_ready_to_buy  # осталось докупить
+                    for order_sell in order[5]:  # в отношении каждого ордера на продажу
+                        price_coins_ready_to_sell = float(order_sell[2])  # цена за продажу
+                        number_of_coins_ready_to_sell = float(order_sell[3])  # количество
+                        if number_of_coins_ready_to_sell >= remains_to_buy:  # если количество ордера больше или равно того, что нам требуется
+                            we_buy_coins['quantity'] += remains_to_buy  # плюсуем к уже "купленным" ордерам нужное кол-во
+                            we_buy_coins['cost'] += price_coins_ready_to_sell * remains_to_buy  # также плюсуем стоимость
+                            break  # прекращаем перебор
+                        else:  # если количества недостаточно для покрытия ордера на покупку
+                            we_buy_coins['quantity'] += number_of_coins_ready_to_sell  # плюсуем к уже "купленным" ордерам все
+                            we_buy_coins['cost'] += price_coins_ready_to_sell * number_of_coins_ready_to_sell  # также плюсуем стоимость
+
+                    # считаем, сколько на этом мы заработали
+                    if we_buy_coins['quantity'] == number_of_coins_ready_to_buy: # если собрали нужное количество
+                        profit_in_dol = (cost_coins_ready_to_buy * number_of_coins_ready_to_buy) - we_buy_coins['cost']
                     else:
-                        text_profit_in_dol = f'<b>Профит в $:</b> {min_profit_in_dol}'
+                        profit_in_dol = (cost_coins_ready_to_buy * we_buy_coins['quantity']) - we_buy_coins['cost']
+                    profit_in_dol = round(profit_in_dol, 2)
 
-
-                    message = f"-------------------\n" \
-                              f"<b>Валютная пара:</b> {currency}/usdt\n\n" \
+                    message = f"<b>Валютная пара:</b> {currency}/usdt\n\n" \
                               f"<b>Покупка:</b>\n" \
-                              f"Биржа: {order[4][0][0]}\n" \
+                              f"Биржа: <a href='{order[5][0][1]}'>{order[5][0][0]}</a>\n" \
                               f"{text_orders_sell}\n" \
                               f"<b>Продажа:</b>\n" \
-                              f"Биржа: {order[0]}\n" \
-                              f"Цена: {order[2]}, кол-во: {order[3]}\n\n" \
-                              f"{text_profit}\n" \
-                              f"{text_profit_in_dol}\n" \
-                              f"--------------------"
+                              f"Биржа: <a href='{order[1]}'>{order[0]}</a>\n" \
+                              f"Цена: {order[3]}, кол-во: {order[4]}\n\n" \
+                              f"<b>Надо:</b>\n" \
+                              f"потратить: {round(we_buy_coins['cost'], 2)}$\n" \
+                              f"что бы купить: {round(we_buy_coins['quantity'], 4)} монет\n\n" \
+                              f"<b>Тогда прибыль:</b>\n" \
+                              f"В %: {text_profit}\n"\
+                              f"В $: {profit_in_dol}$\n"
 
                     _send_message(bot, chats_list, message)
 
@@ -99,7 +115,7 @@ while True:
 
     except Exception as e:
         logging.error(e)
-        _send_message(bot, chats_list, "Какая-то ошибочка")
+        _send_message(bot, chats_list, "Упс. Какая-то ошибочка")
 
 
 bot.infinity_polling()

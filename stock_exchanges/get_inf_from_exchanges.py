@@ -26,6 +26,7 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
                 if first_price_order_sell_from_market_one > first_price_order_buy_from_market_two:  # если максимальная цена предложения о покупке больше чем минимаьная цена предложения о продаже
                     for order_sell in all_orders_sell_from_stock_market_one:  # в отношении каждого ордера о готовности купить
                         order_sell_market = order_sell['stock_market']
+                        order_sell_link_currency_pair = order_sell['link_currency_pair']
                         order_sell_symbol = order_sell['symbol']
                         order_sell_price = order_sell['price']
                         order_sell_quantity = order_sell['quantity']
@@ -33,6 +34,7 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
                         orders_buy = []
                         for order_buy in all_orders_buy_from_stock_market_two:  # в отношении каждого ордера о готовности продать
                             order_buy_market = order_buy['stock_market']
+                            order_buy_link_currency_pair = order_buy['link_currency_pair']
                             order_buy_symbol = order_buy['symbol']
                             order_buy_price = order_buy['price']
                             order_buy_quantity = order_buy['quantity']
@@ -47,10 +49,10 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
                                 margin_in_dol = round(margin_in_dol, 2)
 
                                 # добавляем все в список
-                                orders_buy.append([order_buy_market, order_buy_price, order_buy_quantity, margin, margin_in_dol])
+                                orders_buy.append([order_buy_market, order_buy_link_currency_pair, order_buy_price, order_buy_quantity, margin, margin_in_dol])
 
                         if len(orders_buy) > 0:
-                            order_sell_and_orders_by.append([order_sell_market, order_sell_symbol, order_sell_price, order_sell_quantity, orders_buy])
+                            order_sell_and_orders_by.append([order_sell_market, order_sell_link_currency_pair, order_sell_symbol, order_sell_price, order_sell_quantity, orders_buy])
 
     return order_sell_and_orders_by
 

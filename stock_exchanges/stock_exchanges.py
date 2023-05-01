@@ -11,7 +11,8 @@ def _get_orders_from_bybit(currency):
     :param symbol: Символ валюты.
     :return: Список ордеров на продажу.
     """
-    stock_market = 'www.bybit.com'
+    stock_market = 'bybit'
+    link_currency_pair = f'https://www.bybit.com/ru-RU/trade/spot/{currency}/USDT'
     symbol = currency.upper() + 'USDT'
     # URL для получения стакана заявок (order book)
     url = "https://api.bybit.com/v2/public/orderBook/L2"
@@ -33,9 +34,9 @@ def _get_orders_from_bybit(currency):
         # Фильтрация ордеров на продажу и покупку
         for order in order_book["result"]:
             if order['side'] == "Sell":
-                orders_buy.append({'stock_market': stock_market,  'symbol':symbol, 'price': order['price'], 'quantity': order['size']})
+                orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair,  'symbol':symbol, 'price': order['price'], 'quantity': order['size']})
             elif order['side'] == "Buy":
-                orders_sell.append({'stock_market': stock_market,  'symbol':symbol, 'price': order['price'], 'quantity': order['size']})
+                orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair,  'symbol':symbol, 'price': order['price'], 'quantity': order['size']})
 
         return orders_buy, orders_sell
 
@@ -50,9 +51,10 @@ def _get_orders_from_mexc(currency):
     :return: Список ордеров на продажу.
     """
 
-    stock_market = 'www.mexc.com'
+    stock_market = 'mexc'
     symbol = currency.lower() + '_usdt'
     base_url = "https://www.mexc.com"
+    link_currency_pair = f'https://www.mexc.com/ru-RU/exchange/{currency}_USDT'
     endpoint = "/open/api/v2/market/depth"
     url = base_url + endpoint
     depth = 20  # глубина
@@ -73,14 +75,13 @@ def _get_orders_from_mexc(currency):
 
             # обрабатываем ордера на продажу
             for order in dict_with_orders["data"]["asks"]:
-                orders_buy.append({'stock_market': stock_market, 'symbol':symbol, 'price': order['price'], 'quantity': order['quantity']})
+                orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol':symbol, 'price': order['price'], 'quantity': order['quantity']})
 
             # обрабатываем ордера на покупку
             for order in dict_with_orders["data"]["bids"]:
-                orders_sell.append({'stock_market': stock_market, 'symbol':symbol, 'price': order['price'], 'quantity': order['quantity']})
+                orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol':symbol, 'price': order['price'], 'quantity': order['quantity']})
 
             return orders_buy, orders_sell
-
 
         else:
             raise Exception(f"Error {response.status_code}: {response.text}")
