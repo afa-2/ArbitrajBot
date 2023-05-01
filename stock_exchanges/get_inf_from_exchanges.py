@@ -41,7 +41,13 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
                                 # высчитываем маржу в процентах
                                 margin = ((float(order_sell_price) - float(order_buy_price))/float(order_buy_price))*100
                                 margin = round(margin, 2)
-                                orders_buy.append([order_buy_market, order_buy_price, order_buy_quantity, margin])
+
+                                # вычисляем маржу в $
+                                margin_in_dol = float(order_sell_price) - float(order_buy_price)
+                                margin_in_dol = round(margin_in_dol, 2)
+
+                                # добавляем все в список
+                                orders_buy.append([order_buy_market, order_buy_price, order_buy_quantity, margin, margin_in_dol])
 
                         if len(orders_buy) > 0:
                             order_sell_and_orders_by.append([order_sell_market, order_sell_symbol, order_sell_price, order_sell_quantity, orders_buy])

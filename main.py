@@ -48,7 +48,7 @@ while True:
             all_orders = get_orders_from_exchanges(currency)  # получаем все ордера
             for order in all_orders:  # в отношении каждого ордера
 
-                # профит
+                # профит в процентах
                 data = order[4]
                 min_profit = min(data, key=lambda x: x[-1])[-1]
                 max_profit = max(data, key=lambda x: x[-1])[-1]
@@ -60,9 +60,19 @@ while True:
                         text_orders_sell += string
 
                     if min_profit != max_profit:
-                        text_profit = f'<b>Профит:</b> {min_profit}-{max_profit}'
+                        text_profit = f'<b>Профит в %:</b> {min_profit}%-{max_profit}%'
                     else:
-                        text_profit = f'<b>Профит:</b> {min_profit}'
+                        text_profit = f'<b>Профит в %:</b> {min_profit}'
+
+                    # профит в $
+                    data_profit_in_dol = order[5]
+                    min_profit_in_dol = min(data_profit_in_dol, key=lambda x: x[-1])[-1]
+                    max_profit_in_dol = max(data_profit_in_dol, key=lambda x: x[-1])[-1]
+                    if min_profit_in_dol != max_profit_in_dol:
+                        text_profit_in_dol = f'<b>Профит в $:</b> {min_profit_in_dol}%-{max_profit_in_dol}%'
+                    else:
+                        text_profit_in_dol = f'<b>Профит в $:</b> {min_profit_in_dol}'
+
 
                     message = f"-------------------\n" \
                               f"<b>Валютная пара:</b> {currency}/usdt\n\n" \
@@ -72,7 +82,8 @@ while True:
                               f"<b>Продажа:</b>\n" \
                               f"Биржа: {order[0]}\n" \
                               f"Цена: {order[2]}, кол-во: {order[3]}\n\n" \
-                              f"{text_profit}\n"\
+                              f"{text_profit}\n" \
+                              f"{text_profit_in_dol}\n" \
                               f"--------------------"
 
                     _send_message(bot, chats_list, message)
