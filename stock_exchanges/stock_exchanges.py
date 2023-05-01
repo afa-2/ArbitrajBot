@@ -1,7 +1,6 @@
 """
 Это раздел для работы с биржами. Здесь функции, которые подключаются к биржам и возращают инфу
 """
-
 import requests
 
 
@@ -90,6 +89,49 @@ def _get_orders_from_mexc(currency):
         print('При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}')
 
 
+def _get_orders_from_kucoin(currency):
+    """
+    Функция для получения всех ордеров на продажу и покупку переданной валюты с биржи www.bybit.com.
+    :param symbol: Символ валюты.
+    :return: Список ордеров на продажу.
+    """
+    stock_market = 'kucoin'
+    link_currency_pair = f'https://www.kucoin.com/ru/trade/{currency}-USDT'
+
+    symbol = currency.upper() + '-USDT'
+    # URL для получения стакана заявок (order book)
+    url = f"https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol={symbol}"
+
+    orders_buy = []
+    orders_sell = []
+
+    try:
+        # Отправка запроса к API Bybit
+        response = requests.get(url)
+
+        # Проверка статуса ответа
+        if response.status_code != 200:
+            raise Exception(f"Ошибка при получении данных: {response.text}")
+
+        # Получение стакана заявок (order book)
+        order_book = response.json()
+
+        # Фильтрация ордеров на продажу и покупку
+        data = order_book['data']
+        for order_buy in data['asks']:
+            orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                               'price': order_buy[0], 'quantity': order_buy[1]})
+
+        for order_sell in data['bids']:
+            orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                               'price': order_sell[0], 'quantity': order_sell[1]})
+
+        return orders_buy, orders_sell
+
+    except Exception as e:
+        print('При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}')
+
+
 def all_list_from_all_stock_market(currency: str) -> list:
     """
     Функция принимает валюту,
@@ -106,11 +148,16 @@ def all_list_from_all_stock_market(currency: str) -> list:
         all_list_from_all_stock_market.append([orders_buy_from_bybit, orders_sell_from_bybit])
 
         # биржа www.mexc.com
-        orders_buy_from_bybit, orders_sell_from_bybit = _get_orders_from_mexc(currency)
-        all_list_from_all_stock_market.append([orders_buy_from_bybit, orders_sell_from_bybit])
+        orders_buy_from_mexc, orders_sell_from_mexc = _get_orders_from_mexc(currency)
+        all_list_from_all_stock_market.append([orders_buy_from_mexc, orders_sell_from_mexc])
+
+        # биржа www.kucoin.com
+        orders_buy_from_kucoin, orders_sell_from_kucoin = _get_orders_from_kucoin(currency)
+        all_list_from_all_stock_market.append([orders_buy_from_kucoin, orders_sell_from_kucoin])
 
     except Exception as e:
         print(f'При выполнении функции, получающей данные со всех бирж и объединяющей эти данные в единый массив, произошла ошибка: {e}')
 
     return all_list_from_all_stock_market
+
 
