@@ -27,7 +27,7 @@ currencies = currencies.strip('][').split(', ')
 
 # Логирование --------------------------------------------------------------------------------------------------------
 logging.basicConfig(
-    level=logging.DEBUG,  # Уровень логирования
+    level=logging.ERROR,  # Уровень логирования
     format='%(asctime)s [%(levelname)s] %(message)s',  # Формат сообщений
     handlers=[
         logging.FileHandler("my_log.log"),  # Запись логов в файл
