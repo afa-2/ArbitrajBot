@@ -25,6 +25,7 @@ min_profit_from_conf = float(config.get('settings', 'min_profit').strip())
 currencies = config.get('settings', 'currencies').strip()
 currencies = currencies.strip('][').split(', ')
 
+
 # Логирование --------------------------------------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.ERROR,  # Уровень логирования
@@ -46,62 +47,39 @@ while True:
         start_time = time.time()  # Засекаем время начала выполнения кода
         for currency in currencies:  # в отношении каждой валюты
             all_orders = get_orders_from_exchanges(currency)  # получаем все ордера
-            for order in all_orders:  # в отношении каждого ордера
-                # профит в процентах
-                data = order[5]
-                min_profit = min(data, key=lambda x: x[4])[4]
-                max_profit = max(data, key=lambda x: x[4])[4]
+            if len(all_orders) > 0:  # если ордеров больше 0
+                for order in all_orders:  # в отношении каждого ордера
+                    order_buy = order['order_buy'] # ордер на покупку
+                    orders_sell = order['orders_sell']  # ордера на продажу
+                    need_spent = order['need_spent']  # надо потратить
+                    need_bought = order['need_bought'] # надо купить монет
+                    profit = order['margin'] # профит в процентах
+                    profit_in_dol = order['margin_in_dol']  # профит в долларах
 
-                if max_profit >= min_profit_from_conf: # если профит больше или равен профиту из настроек
-                    text_orders_sell = ''
-                    for order_sell in order[5]:  # в отношении каждого ордера на продажу
-                        string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
-                        text_orders_sell += string
+                    if profit >= min_profit_from_conf:  # если профит больше или равен профиту из настроек
 
-                    if min_profit != max_profit:
-                        text_profit = f'{min_profit}%-{max_profit}%'
-                    else:
-                        text_profit = f'{min_profit}%'
+                        # формируем спсок из всех ордеров на проаджу
+                        text_orders_sell = ''
+                        for order_sell in orders_sell:  # в отношении каждого ордера на продажу
+                            string = f'Цена: {round(order_sell[2], 2)}, кол-во: {round(order_sell[3], 3)}\n'
+                            text_orders_sell += string
 
-                    # считаем профит в $
-                    cost_coins_ready_to_buy = float(order[3])  # цена монет, которые готовы купить
-                    number_of_coins_ready_to_buy = float(order[4])  # количество монет, которые готовы купить
+                        # формируем сообщение
+                        message = f"<b>Валютная пара:</b> {currency}/usdt\n\n" \
+                                  f"<b>Покупка:</b>\n" \
+                                  f"Биржа: <a href='{orders_sell[0][1]}'>{orders_sell[0][0]}</a>\n" \
+                                  f"{text_orders_sell}\n" \
+                                  f"<b>Продажа:</b>\n" \
+                                  f"Биржа: <a href='{order_buy[1]}'>{order_buy[0]}</a>\n" \
+                                  f"Цена: {round(order_buy[3], 2)}, кол-во: {round(order_buy[4], 3)}\n\n" \
+                                  f"<b>Надо:</b>\n" \
+                                  f"потратить: {round(need_spent, 2)}$\n" \
+                                  f"что бы купить: {round(need_bought, 4)} монет\n\n" \
+                                  f"<b>Тогда прибыль:</b>\n" \
+                                  f"В %: {profit}%\n"\
+                                  f"В $: {profit_in_dol}$\n"
 
-                    we_buy_coins = {'quantity': 0, 'cost': 0}
-                    remains_to_buy = number_of_coins_ready_to_buy  # осталось докупить
-                    for order_sell in order[5]:  # в отношении каждого ордера на продажу
-                        price_coins_ready_to_sell = float(order_sell[2])  # цена за продажу
-                        number_of_coins_ready_to_sell = float(order_sell[3])  # количество
-                        if number_of_coins_ready_to_sell >= remains_to_buy:  # если количество ордера больше или равно того, что нам требуется
-                            we_buy_coins['quantity'] += remains_to_buy  # плюсуем к уже "купленным" ордерам нужное кол-во
-                            we_buy_coins['cost'] += price_coins_ready_to_sell * remains_to_buy  # также плюсуем стоимость
-                            break  # прекращаем перебор
-                        else:  # если количества недостаточно для покрытия ордера на покупку
-                            we_buy_coins['quantity'] += number_of_coins_ready_to_sell  # плюсуем к уже "купленным" ордерам все
-                            we_buy_coins['cost'] += price_coins_ready_to_sell * number_of_coins_ready_to_sell  # также плюсуем стоимость
-
-                    # считаем, сколько на этом мы заработали
-                    if we_buy_coins['quantity'] == number_of_coins_ready_to_buy: # если собрали нужное количество
-                        profit_in_dol = (cost_coins_ready_to_buy * number_of_coins_ready_to_buy) - we_buy_coins['cost']
-                    else:
-                        profit_in_dol = (cost_coins_ready_to_buy * we_buy_coins['quantity']) - we_buy_coins['cost']
-                    profit_in_dol = round(profit_in_dol, 2)
-
-                    message = f"<b>Валютная пара:</b> {currency}/usdt\n\n" \
-                              f"<b>Покупка:</b>\n" \
-                              f"Биржа: <a href='{order[5][0][1]}'>{order[5][0][0]}</a>\n" \
-                              f"{text_orders_sell}\n" \
-                              f"<b>Продажа:</b>\n" \
-                              f"Биржа: <a href='{order[1]}'>{order[0]}</a>\n" \
-                              f"Цена: {order[3]}, кол-во: {order[4]}\n\n" \
-                              f"<b>Надо:</b>\n" \
-                              f"потратить: {round(we_buy_coins['cost'], 2)}$\n" \
-                              f"что бы купить: {round(we_buy_coins['quantity'], 4)} монет\n\n" \
-                              f"<b>Тогда прибыль:</b>\n" \
-                              f"В %: {text_profit}\n"\
-                              f"В $: {profit_in_dol}$\n"
-
-                    _send_message(bot, chats_list, message)
+                        _send_message(bot, chats_list, message)
 
         end_time = time.time()  # Засекаем время окончания выполнения кода
         elapsed_time = end_time - start_time  # Вычисляем затраченное время
