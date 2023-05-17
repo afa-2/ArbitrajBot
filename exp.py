@@ -1,53 +1,101 @@
-import requests
+import telebot
+import configparser
+import time
 import logging
+from stock_exchanges.working_with_data import get_orders_from_exchanges
 
 
-def _get_orders_from_gate(currency):
-    """
-    Функция для получения всех ордеров на продажу и покупку переданной валюты с биржи www.gate.io.
-    :param symbol: Символ валюты.
-    :return: Список ордеров на продажу.
-    """
-    currency = currency.upper()
-    stock_market = 'gate'
-    link_currency_pair = f'https://www.gate.io/ru/trade/{currency}_USDT'
-    symbol = currency + '_USDT'
-    # URL для получения стакана заявок (order book)
-    url = f'https://api.gateio.ws/api/v4/spot/order_book?currency_pair={symbol}&limit=20'
+def _send_message(bot, chats_list, message):
+    for chat in chats_list:
+        if len(chat) > 0:
+            bot.send_message(chat, message, parse_mode="HTML", disable_web_page_preview=True)
 
-    orders_sell = []
-    orders_buy = []
 
-    try:
-        # Отправка запроса к API
-        response = requests.get(url)
+# Настройки -----------------------------------------------------------------------------------------------------------
+# забираем настройки из ini
+config = configparser.ConfigParser()
+config.read('config.ini')
+api = config.get('settings', 'api_key').strip()
+# чаты
+chats = config.get('settings', 'chats').strip()
+chats_list = chats.strip('][').split(', ')
+# min profit
+min_profit_from_conf = float(config.get('settings', 'min_profit').strip())
+# валюты
+currencies = config.get('settings', 'currencies').strip()
+currencies = currencies.strip('][').split(', ')
 
-        # Проверка статуса ответа
-        if response.status_code != 200:
-            text = f"Ошибка при получении данных: {response.text}"
-            logging.error(text)
-            print(text)
 
-        # Получение стакана заявок (order book)
-        order_book = response.json()
 
-        # Фильтрация ордеров на продажу и покупку
-        data = order_book
-        for order_sell in data['asks']:
-            orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
-                               'price': float(order_sell[0]), 'quantity': float(order_sell[1])})
+# Логирование --------------------------------------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.ERROR,  # Уровень логирования
+    format='%(asctime)s [%(levelname)s] %(message)s',  # Формат сообщений
+    handlers=[
+        logging.FileHandler("my_log.log"),  # Запись логов в файл
+    ]
+)
 
-        for order_buy in data['bids']:
-            orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
-                               'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
+# Программа -----------------------------------------------------------------------------------------------------------
+# bot = telebot.TeleBot(api)  # запускаем бота
 
-        return orders_sell, orders_buy
+# сообщение, что бот запущен
+# _send_message(bot, chats_list, "Бот запущен")
 
-    except Exception as e:
-        text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
-        logging.error(text)
-        print(text)
 
-orders_sell, orders_buy = _get_orders_from_gate('btc')
-print(orders_sell)
-print(orders_buy)
+
+try:
+    start_time = time.time()  # Засекаем время начала выполнения кода
+    for currency in currencies:  # в отношении каждой валюты
+        all_orders = get_orders_from_exchanges(currency)  # получаем все ордера
+        if len(all_orders) > 0:  # если ордеров больше 0
+            for order in all_orders:  # в отношении каждого ордера
+                order_buy = order['order_buy'] # ордер на покупку
+                orders_sell = order['orders_sell']  # ордера на продажу
+                need_spent = order['need_spent']  # надо потратить
+                need_bought = order['need_bought'] # надо купить монет
+                profit = order['margin'] # профит в процентах
+                profit_in_dol = order['margin_in_dol']  # профит в долларах
+
+                if profit >= min_profit_from_conf:  # если профит больше или равен профиту из настроек
+
+                    # формируем спсок из всех ордеров на проаджу
+                    text_orders_sell = ''
+                    for order_sell in orders_sell:  # в отношении каждого ордера на продажу
+                        string = f'Цена: {round(order_sell[2], 2)}, кол-во: {round(order_sell[3], 3)}\n'
+                        text_orders_sell += string
+
+                    # формируем сообщение
+                    message = f"<b>Валютная пара:</b> {currency}/usdt\n\n" \
+                              f"<b>Покупка:</b>\n" \
+                              f"Биржа: <a href='{orders_sell[0][1]}'>{orders_sell[0][0]}</a>\n" \
+                              f"{text_orders_sell}\n" \
+                              f"<b>Продажа:</b>\n" \
+                              f"Биржа: <a href='{order_buy[1]}'>{order_buy[0]}</a>\n" \
+                              f"Цена: {round(order_buy[3], 2)}, кол-во: {round(order_buy[4], 3)}\n\n" \
+                              f"<b>Надо:</b>\n" \
+                              f"потратить: {round(need_spent, 2)}$\n" \
+                              f"что бы купить: {round(need_bought, 4)} монет\n\n" \
+                              f"<b>Тогда прибыль:</b>\n" \
+                              f"В %: {profit}%\n"\
+                              f"В $: {profit_in_dol}$\n"
+
+                    # _send_message(bot, chats_list, message)
+
+    end_time = time.time()  # Засекаем время окончания выполнения кода
+    elapsed_time = end_time - start_time  # Вычисляем затраченное время
+    elapsed_time = round(elapsed_time, 2)
+
+    # text = f"Полный круг. Время выполнения кода: {elapsed_time} секунд"
+    # for chat in chats_list:
+    #     if len(chat) > 0:
+    #         bot.send_message(chat, text, parse_mode="HTML")
+
+except Exception as e:
+    logging.error(e)
+    # _send_message(bot, chats_list, "Упс. Какая-то ошибочка")
+
+
+# bot.infinity_polling()
+
+

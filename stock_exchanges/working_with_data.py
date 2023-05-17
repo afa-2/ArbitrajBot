@@ -1,4 +1,4 @@
-from stock_exchanges.stock_exchanges import all_list_from_all_stock_market
+from stock_exchanges.get_data_from_exchanges import all_list_from_all_stock_market
 import logging
 
 
@@ -23,6 +23,7 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
 
                 first_price_order_buy_from_market_one = all_orders_buy_from_stock_market_one[0]['price']  # ордера на покупку с биржи 1, первое значение цены
                 first_price_order_sell_from_market_two = all_orders_sell_from_stock_market_two[0]['price']  # ордера на продажу с биржи 2, первое значение цены
+
                 if first_price_order_buy_from_market_one > first_price_order_sell_from_market_two:  # если максимальная цена предложения о покупке больше чем минимаьная цена предложения о продаже
                     for order_buy in all_orders_buy_from_stock_market_one:  # в отношении каждого ордера о готовности купить (ордера на продажу)
                         order_buy_market = order_buy['stock_market']

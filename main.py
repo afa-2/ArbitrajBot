@@ -2,7 +2,7 @@ import telebot
 import configparser
 import time
 import logging
-from stock_exchanges.get_inf_from_exchanges import get_orders_from_exchanges
+from stock_exchanges.working_with_data import get_orders_from_exchanges
 
 
 def _send_message(bot, chats_list, message):
@@ -26,6 +26,7 @@ currencies = config.get('settings', 'currencies').strip()
 currencies = currencies.strip('][').split(', ')
 
 
+
 # Логирование --------------------------------------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.ERROR,  # Уровень логирования
@@ -35,12 +36,12 @@ logging.basicConfig(
     ]
 )
 
-
 # Программа -----------------------------------------------------------------------------------------------------------
 bot = telebot.TeleBot(api)  # запускаем бота
 
-# сообение, что бот запущен
+# сообщение, что бот запущен
 _send_message(bot, chats_list, "Бот запущен")
+_send_message(bot, chats_list, f"Количество монет: {len(currencies)}")
 
 
 while True:
@@ -49,6 +50,7 @@ while True:
         for currency in currencies:  # в отношении каждой валюты
             all_orders = get_orders_from_exchanges(currency)  # получаем все ордера
             if len(all_orders) > 0:  # если ордеров больше 0
+                previous_message = ''
                 for order in all_orders:  # в отношении каждого ордера
                     order_buy = order['order_buy'] # ордер на покупку
                     orders_sell = order['orders_sell']  # ордера на продажу
@@ -58,7 +60,6 @@ while True:
                     profit_in_dol = order['margin_in_dol']  # профит в долларах
 
                     if profit >= min_profit_from_conf:  # если профит больше или равен профиту из настроек
-
                         # формируем спсок из всех ордеров на проаджу
                         text_orders_sell = ''
                         for order_sell in orders_sell:  # в отношении каждого ордера на продажу
@@ -80,16 +81,19 @@ while True:
                                   f"В %: {profit}%\n"\
                                   f"В $: {profit_in_dol}$\n"
 
-                        _send_message(bot, chats_list, message)
+                        if message != previous_message:  # если сообщение не равно предыдущему
+                            _send_message(bot, chats_list, message)
+                        previous_message = message  # сохраняем сообщение как предудщее, для проверки, что бы они не повторялись
 
         end_time = time.time()  # Засекаем время окончания выполнения кода
         elapsed_time = end_time - start_time  # Вычисляем затраченное время
         elapsed_time = round(elapsed_time, 2)
 
-        # text = f"Полный круг. Время выполнения кода: {elapsed_time} секунд"
-        # for chat in chats_list:
-        #     if len(chat) > 0:
-        #         bot.send_message(chat, text, parse_mode="HTML")
+        text = f"Полный круг. Время выполнения кода: {elapsed_time} секунд"
+        for chat in chats_list:
+            if len(chat) > 0:
+                logging.error(text)
+                bot.send_message(chat, text, parse_mode="HTML")
 
     except Exception as e:
         logging.error(e)
