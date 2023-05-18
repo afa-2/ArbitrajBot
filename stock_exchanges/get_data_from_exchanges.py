@@ -4,6 +4,16 @@
 import requests
 import logging
 import configparser
+import datetime
+
+
+def _save_text_to_file(text, file, coin):
+    current_time = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
+    with open(file, "a") as file:
+        text = f'{current_time}\n' \
+               f'{coin}' \
+               f' {text}\n\n'
+        file.write(f"{current_time} {text}\n")
 
 
 def _check_coin_in_list_not_support(coin, list_exchange_not_support):
@@ -38,6 +48,7 @@ def _get_orders_from_bybit(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
+                _save_text_to_file(order_book, 'bybit.txt', symbol)
 
                 # Фильтрация ордеров на продажу и покупку
                 for order in order_book["result"]:
@@ -52,12 +63,10 @@ def _get_orders_from_bybit(currency, list_exchange_not_support):
                        f"биржа: {stock_market}" \
                        f"монета: {currency}"
                 logging.error(text)
-                print(text)
 
         except Exception as e:
             text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
             logging.error(text)
-            print(text)
 
     return orders_sell, orders_buy
 
@@ -91,7 +100,7 @@ def _get_orders_from_mexc(currency, list_exchange_not_support):
 
             if response.status_code == 200:
                 dict_with_orders = response.json()
-
+                _save_text_to_file(dict_with_orders, 'mexc.txt', symbol)
                 # обрабатываем ордера на продажу
                 for order in dict_with_orders["data"]["asks"]:
                     orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol':symbol, 'price': float(order['price']), 'quantity': float(order['quantity'])})
@@ -106,19 +115,17 @@ def _get_orders_from_mexc(currency, list_exchange_not_support):
                        f"биржа: {stock_market}" \
                        f"монета: {currency}"
                 logging.error(text)
-                print(text)
 
         except Exception as e:
             text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
             logging.error(text)
-            print(text)
 
     return orders_sell, orders_buy
 
 
 def _get_orders_from_kucoin(currency, list_exchange_not_support):
     """
-    Функция для получения всех ордеров на продажу и покупку переданной валюты с биржи www.bybit.com.
+    Функция для получения всех ордеров на продажу и покупку переданной валюты с биржи www.kucoin.com.
     :param symbol: Символ валюты.
     :return: Список ордеров на продажу.
     """
@@ -141,6 +148,7 @@ def _get_orders_from_kucoin(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
+                _save_text_to_file(order_book, 'kucoin.txt', symbol)
 
                 # Фильтрация ордеров на продажу и покупку
                 data = order_book['data']
@@ -158,12 +166,10 @@ def _get_orders_from_kucoin(currency, list_exchange_not_support):
                        f"биржа: {stock_market}" \
                        f"монета: {currency}"
                 logging.error(text)
-                print(text)
 
         except Exception as e:
             text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
             logging.error(text)
-            print(text)
 
     return orders_sell, orders_buy
 
@@ -193,6 +199,7 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
+                _save_text_to_file(order_book, 'binance.txt', symbol)
 
                 # Фильтрация ордеров на продажу и покупку
                 data = order_book
@@ -211,12 +218,10 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
                        f"биржа: {stock_market}" \
                        f"монета: {currency}"
                 logging.error(text)
-                print(text)
 
         except Exception as e:
             text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
             logging.error(text)
-            print(text)
 
     return orders_sell, orders_buy
 
@@ -246,6 +251,7 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
+                _save_text_to_file(order_book, 'huobi.txt', symbol)
                 if order_book['status'] != 'error':
                     # Фильтрация ордеров на продажу и покупку
                     data = order_book['tick']
@@ -259,7 +265,6 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
                 else:
                     text = 'упс, ошибочка', order_book
                     logging.error(text)
-                    print(text)
 
             else:
                 text = f"-------------------------------\n" \
@@ -267,12 +272,10 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
                        f"биржа: {stock_market}" \
                        f"монета: {currency}"
                 logging.error(text)
-                print(text)
 
         except Exception as e:
             text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
             logging.error(text)
-            print(text)
 
     return orders_sell, orders_buy
 
@@ -302,7 +305,7 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
-
+                _save_text_to_file(order_book, 'gate.txt', symbol)
                 # Фильтрация ордеров на продажу и покупку
                 data = order_book
                 for order_sell in data['asks']:
@@ -319,12 +322,10 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
                        f"биржа: {stock_market}" \
                        f"монета: {currency}"
                 logging.error(text)
-                print(text)
 
         except Exception as e:
             text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
             logging.error(text)
-            print(text)
 
     return orders_sell, orders_buy
 
@@ -382,8 +383,8 @@ def all_list_from_all_stock_market(currency: str) -> list:
     except Exception as e:
         text = f'При выполнении функции, получающей данные со всех бирж и объединяющей эти данные в единый массив, произошла ошибка: {e}'
         logging.error(text)
-        print(text)
 
+    _save_text_to_file(all_list_from_all_stock_market, 'all_list_from_all_stock_market.txt', currency)
     return all_list_from_all_stock_market
 
 

@@ -16,15 +16,19 @@ def _send_message(bot, chats_list, message):
 config = configparser.ConfigParser()
 config.read('config.ini')
 api = config.get('settings', 'api_key').strip()
+
 # чаты
 chats = config.get('settings', 'chats').strip()
 chats_list = chats.strip('][').split(', ')
+
 # min profit
 min_profit_from_conf = float(config.get('settings', 'min_profit').strip())
+min_profit_usd_from_conf = float(config.get('settings', 'min_profit_usd').strip())
+max_invest_conf = float(config.get('settings', 'max_invest').strip())
+
 # валюты
 currencies = config.get('settings', 'currencies').strip()
 currencies = currencies.strip('][').split(', ')
-
 
 
 # Логирование --------------------------------------------------------------------------------------------------------
@@ -59,11 +63,15 @@ while True:
                     profit = order['margin'] # профит в процентах
                     profit_in_dol = order['margin_in_dol']  # профит в долларах
 
-                    if profit >= min_profit_from_conf:  # если профит больше или равен профиту из настроек
+                    # если профит больше минимального и надо потратить меньше максимального
+                    if profit >= min_profit_from_conf \
+                            and profit_in_dol >= min_profit_usd_from_conf \
+                            and need_spent <= max_invest_conf:
+
                         # формируем спсок из всех ордеров на проаджу
                         text_orders_sell = ''
                         for order_sell in orders_sell:  # в отношении каждого ордера на продажу
-                            string = f'Цена: {round(order_sell[2], 2)}, кол-во: {round(order_sell[3], 3)}\n'
+                            string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
                             text_orders_sell += string
 
                         # формируем сообщение
@@ -73,7 +81,8 @@ while True:
                                   f"{text_orders_sell}\n" \
                                   f"<b>Продажа:</b>\n" \
                                   f"Биржа: <a href='{order_buy[1]}'>{order_buy[0]}</a>\n" \
-                                  f"Цена: {round(order_buy[3], 2)}, кол-во: {round(order_buy[4], 3)}\n\n" \
+                                  f"Цена: {order_buy[3]}\n " \
+                                  f"Кол-во: {order_buy[4]}\n\n" \
                                   f"<b>Надо:</b>\n" \
                                   f"потратить: {round(need_spent, 2)}$\n" \
                                   f"что бы купить: {round(need_bought, 4)} монет\n\n" \

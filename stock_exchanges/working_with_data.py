@@ -46,7 +46,7 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
 
                         if len(orders_sell) > 0:
                             order_buy_and_orders_sell = {}
-                            order_buy_and_orders_sell['order_buy'] = [order_buy_market, order_buy_link_currency_pair, order_buy_symbol, order_sell_price, order_sell_quantity]
+                            order_buy_and_orders_sell['order_buy'] = [order_buy_market, order_buy_link_currency_pair, order_buy_symbol, order_buy_price, order_buy_quantity]
                             order_buy_and_orders_sell['orders_sell'] = orders_sell
                             liet_orders_buy_with_orders_sell.append(order_buy_and_orders_sell)
 
