@@ -8,12 +8,16 @@ import datetime
 
 
 def _save_text_to_file(text, file, coin):
-    current_time = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
-    with open(file, "a") as file:
-        text = f'{current_time}\n' \
-               f'{coin}' \
-               f' {text}\n\n'
-        file.write(f"{current_time} {text}\n")
+    """
+    Функция, для сохранения записей в его конкретный файл
+    """
+    pass
+    # current_time = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
+    # with open(file, "a") as file:
+    #     text = f'{current_time}\n' \
+    #            f'{coin}' \
+    #            f' {text}\n\n'
+    #     file.write(f"{current_time} {text}\n")
 
 
 def _check_coin_in_list_not_support(coin, list_exchange_not_support):
