@@ -334,6 +334,58 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
     return orders_sell, orders_buy
 
 
+def _get_orders_from_bitget(currency, list_exchange_not_support):
+    """
+    Функция для получения всех ордеров на продажу и покупку переданной валюты с биржи bitget.com.
+    :param symbol: Символ валюты.
+    :return: Список ордеров на продажу.
+    """
+    currency = currency.upper()
+    stock_market = 'bitget'
+    link_currency_pair = f'https://www.bitget.com/ru/spot/{currency}USDT_SPBL?type=spot'
+
+    currency = currency.lower()
+    symbol = currency + '_usdt'
+    # URL для получения стакана заявок (order book)
+    url = f'https://api.bitget.com/data/v1/market/depth?symbol={symbol}'
+
+    orders_sell = []
+    orders_buy = []
+
+    if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        try:
+            # Отправка запроса к API
+            response = requests.get(url)
+
+            # Проверка статуса ответа
+            if response.status_code == 200:
+                # Получение стакана заявок (order book)
+                order_book = response.json()
+                _save_text_to_file(order_book, 'gate.txt', symbol)
+                # Фильтрация ордеров на продажу и покупку
+                data = order_book['data']
+                for order_sell in data['asks']:
+                    orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                                       'price': float(order_sell[0]), 'quantity': float(order_sell[1])})
+
+                for order_buy in data['bids']:
+                    orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                                       'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
+
+            else:
+                text = f"-------------------------------\n" \
+                       f"Ошибка при получении данных (не 200): {response.text}\n" \
+                       f"биржа: {stock_market}" \
+                       f"монета: {currency}"
+                logging.error(text)
+
+        except Exception as e:
+            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            logging.error(text)
+
+    return orders_sell, orders_buy
+
+
 def all_list_from_all_stock_market(currency: str) -> list:
     """
     Функция принимает валюту,
@@ -348,7 +400,7 @@ def all_list_from_all_stock_market(currency: str) -> list:
     config = configparser.ConfigParser()
     config.read('config.ini')
     dict_exchange_not_support = {}
-    for exchange in ['bybit', 'mexc', 'kucoin', 'binance', 'huobi', 'gate']:
+    for exchange in ['bybit', 'mexc', 'kucoin', 'binance', 'huobi', 'gate', 'bitget']:
         string = exchange + '_not_support'
         exchange_not_support = config.get('settings', string).strip().lower()
         dict_exchange_not_support[exchange] = exchange_not_support.strip('][').split(', ')
@@ -383,6 +435,11 @@ def all_list_from_all_stock_market(currency: str) -> list:
         orders_sell_from_gate, orders_buy_from_gate = _get_orders_from_gate(currency, dict_exchange_not_support['gate'])
         if len(orders_sell_from_gate) > 0 and len(orders_buy_from_gate) > 0:
             all_list_from_all_stock_market.append([orders_sell_from_gate, orders_buy_from_gate])
+
+        # биржа bitget.com
+        orders_sell_from_bitget, orders_buy_from_bitget = _get_orders_from_bitget(currency, dict_exchange_not_support['bitget'])
+        if len(orders_sell_from_bitget) > 0 and len(orders_buy_from_bitget) > 0:
+            all_list_from_all_stock_market.append([orders_sell_from_bitget, orders_buy_from_bitget])
 
     except Exception as e:
         text = f'При выполнении функции, получающей данные со всех бирж и объединяющей эти данные в единый массив, произошла ошибка: {e}'
