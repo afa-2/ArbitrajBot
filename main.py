@@ -86,13 +86,13 @@ while True:
                                   f"<b>Покупка:</b>\n" \
                                   f"Биржа: <a href='{orders_sell[0][1]}'>{orders_sell[0][0]}</a>\n" \
                                   f"{text_orders_sell}\n" \
+                                  f"<b>Надо:</b>\n" \
+                                  f"потратить: {round(need_spent, 2)}$\n" \
+                                  f"что бы купить: {round(need_bought, 4)} монет\n\n" \
                                   f"<b>Продажа:</b>\n" \
                                   f"Биржа: <a href='{order_buy[1]}'>{order_buy[0]}</a>\n" \
                                   f"Цена: {order_buy[3]}\n" \
                                   f"Кол-во: {order_buy[4]}\n\n" \
-                                  f"<b>Надо:</b>\n" \
-                                  f"потратить: {round(need_spent, 2)}$\n" \
-                                  f"что бы купить: {round(need_bought, 4)} монет\n\n" \
                                   f"<b>Тогда прибыль:</b>\n" \
                                   f"В %: {profit}%\n"\
                                   f"В $: {profit_in_dol}$\n"
