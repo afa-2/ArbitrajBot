@@ -29,6 +29,13 @@ max_invest_conf = float(config.get('settings', 'max_invest').strip())
 # валюты
 currencies = config.get('settings', 'currencies').strip()
 currencies = currencies.strip('][').split(', ')
+# удаляем повторяющиеся валюты
+new_list = []
+for currency in currencies:
+    if currency not in new_list:
+        new_list.append(currency)
+
+currencies = new_list
 
 
 # Логирование --------------------------------------------------------------------------------------------------------

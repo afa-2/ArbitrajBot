@@ -85,8 +85,8 @@ def _get_orders_from_mexc(currency, list_exchange_not_support):
     stock_market = 'mexc'
     symbol = currency.lower() + '_usdt'
     base_url = "https://www.mexc.com"
-    link_currency_pair = f'https://www.mexc.com/ru-RU/exchange/{currency}_USDT'
     endpoint = "/open/api/v2/market/depth"
+    link_currency_pair = f'https://www.mexc.com/ru-RU/exchange/{currency}_USDT'
     url = base_url + endpoint
     depth = 20  # глубина
 
