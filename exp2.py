@@ -12,7 +12,7 @@ recv_window=str(5000)
 url="https://api.bybit.com" # Testnet endpoint
 
 
-def HTTP_Request(endPoint,method,payload,Info):
+def HTTP_Request(endPoint, method, payload, Info):
     global time_stamp
     time_stamp=str(int(time.time() * 10 ** 3))
     signature=genSignature(payload)

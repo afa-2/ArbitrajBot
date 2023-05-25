@@ -12,11 +12,21 @@ def _send_message(bot, chats_list, message):
 
 
 # Настройки -----------------------------------------------------------------------------------------------------------
-# забираем настройки из ini
+# забираем ключи из ini
+dict_with_keys = {}
 config = configparser.ConfigParser()
 config.read('config.ini')
-api = config.get('settings', 'api_key').strip()
 
+# telegram
+api = config.get('keys', 'api_key').strip()
+
+# bybit
+bybit_api_key = config.get('keys', 'bybit_api_key').strip()
+bybit_secret_key = config.get('keys', 'bybit_secret_key').strip()
+dict_with_keys['bybit'] = {'api_key': bybit_api_key, 'secret_key': bybit_secret_key}
+
+
+#  забираем настройки из ini
 # чаты
 chats = config.get('settings', 'chats').strip()
 chats_list = chats.strip('][').split(', ')
