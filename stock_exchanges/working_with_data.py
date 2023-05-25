@@ -1,4 +1,4 @@
-from stock_exchanges.get_data_from_exchanges import all_list_from_all_stock_market
+from stock_exchanges.get_orders_from_exchanges import all_list_from_all_stock_market
 import logging
 
 
