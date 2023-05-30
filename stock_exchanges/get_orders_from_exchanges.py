@@ -7,19 +7,6 @@ import configparser
 import datetime
 
 
-def _save_text_to_file(text, file, coin):
-    """
-    Функция, для сохранения записей в его конкретный файл
-    """
-    pass
-    # current_time = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
-    # with open(file, "a") as file:
-    #     text = f'{current_time}\n' \
-    #            f'{coin}' \
-    #            f' {text}\n\n'
-    #     file.write(f"{current_time} {text}\n")
-
-
 def _check_coin_in_list_not_support(coin, list_exchange_not_support):
     """
     Проверяет, есть ли монтеа в списке неподдерживаемых моенет.
@@ -44,6 +31,9 @@ def _get_orders_from_bybit(currency, list_exchange_not_support):
     orders_sell = []
 
     if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
+        response = ''
+        order_book = ''
         try:
             # Отправка запроса к API Bybit
             response = requests.get(url, params={"symbol": symbol})
@@ -52,7 +42,6 @@ def _get_orders_from_bybit(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
-                _save_text_to_file(order_book, 'bybit.txt', symbol)
 
                 # Фильтрация ордеров на продажу и покупку
                 for order in order_book["result"]:
@@ -69,7 +58,9 @@ def _get_orders_from_bybit(currency, list_exchange_not_support):
                 logging.error(text)
 
         except Exception as e:
-            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'response: {response}\n' \
+                   f'response.json: {order_book}\n'
             logging.error(text)
 
     return orders_sell, orders_buy
@@ -99,12 +90,14 @@ def _get_orders_from_mexc(currency, list_exchange_not_support):
     }
 
     if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
+        response = ''
+        dict_with_orders = ''
         try:
             response = requests.get(url, params=params)
 
             if response.status_code == 200:
                 dict_with_orders = response.json()
-                _save_text_to_file(dict_with_orders, 'mexc.txt', symbol)
                 # обрабатываем ордера на продажу
                 for order in dict_with_orders["data"]["asks"]:
                     orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol':symbol, 'price': float(order['price']), 'quantity': float(order['quantity'])})
@@ -121,7 +114,9 @@ def _get_orders_from_mexc(currency, list_exchange_not_support):
                 logging.error(text)
 
         except Exception as e:
-            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'response: {response}\n' \
+                   f'response.json: {dict_with_orders}\n'
             logging.error(text)
 
     return orders_sell, orders_buy
@@ -144,6 +139,9 @@ def _get_orders_from_kucoin(currency, list_exchange_not_support):
     orders_sell = []
 
     if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
+        response = ''
+        order_book = ''
         try:
             # Отправка запроса к API
             response = requests.get(url)
@@ -152,17 +150,18 @@ def _get_orders_from_kucoin(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
-                _save_text_to_file(order_book, 'kucoin.txt', symbol)
 
                 # Фильтрация ордеров на продажу и покупку
                 data = order_book['data']
-                for order_sell in data['asks']:
-                    orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
-                                       'price': float(order_sell[0]), 'quantity': float(order_sell[1])})
+                if data['asks'] != None:
+                    for order_sell in data['asks']:
+                        orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                                           'price': float(order_sell[0]), 'quantity': float(order_sell[1])})
 
-                for order_buy in data['bids']:
-                    orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
-                                       'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
+                if data['bids'] != None:
+                    for order_buy in data['bids']:
+                        orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                                           'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
 
             else:
                 text = f"-------------------------------\n" \
@@ -172,7 +171,9 @@ def _get_orders_from_kucoin(currency, list_exchange_not_support):
                 logging.error(text)
 
         except Exception as e:
-            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'response: {response}\n' \
+                   f'response.json: {order_book}\n'
             logging.error(text)
 
     return orders_sell, orders_buy
@@ -195,6 +196,9 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
     orders_sell = []
 
     if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
+        response = ''
+        order_book = ''
         try:
             # Отправка запроса к API
             response = requests.get(url)
@@ -203,7 +207,6 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
-                _save_text_to_file(order_book, 'binance.txt', symbol)
 
                 # Фильтрация ордеров на продажу и покупку
                 data = order_book
@@ -224,7 +227,9 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
                 logging.error(text)
 
         except Exception as e:
-            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'response: {response}\n' \
+                   f'response.json: {order_book}\n'
             logging.error(text)
 
     return orders_sell, orders_buy
@@ -247,6 +252,9 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
     orders_sell = []
 
     if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
+        response = ''
+        order_book = ''
         try:
             # Отправка запроса к API
             response = requests.get(url)
@@ -255,7 +263,7 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
-                _save_text_to_file(order_book, 'huobi.txt', symbol)
+
                 if order_book['status'] != 'error':
                     # Фильтрация ордеров на продажу и покупку
                     data = order_book['tick']
@@ -278,7 +286,9 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
                 logging.error(text)
 
         except Exception as e:
-            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'response: {response}\n' \
+                   f'response.json: {order_book}\n'
             logging.error(text)
 
     return orders_sell, orders_buy
@@ -301,6 +311,9 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
     orders_buy = []
 
     if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
+        response = ''
+        order_book = ''
         try:
             # Отправка запроса к API
             response = requests.get(url)
@@ -309,7 +322,7 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
-                _save_text_to_file(order_book, 'gate.txt', symbol)
+
                 # Фильтрация ордеров на продажу и покупку
                 data = order_book
                 for order_sell in data['asks']:
@@ -328,7 +341,9 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
                 logging.error(text)
 
         except Exception as e:
-            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'response: {response}\n' \
+                   f'response.json: {order_book}\n'
             logging.error(text)
 
     return orders_sell, orders_buy
@@ -353,6 +368,9 @@ def _get_orders_from_bitget(currency, list_exchange_not_support):
     orders_buy = []
 
     if not _check_coin_in_list_not_support(currency, list_exchange_not_support):  # если монета не в списке неподдерживаемых монет
+        # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
+        response = ''
+        order_book = ''
         try:
             # Отправка запроса к API
             response = requests.get(url)
@@ -361,16 +379,18 @@ def _get_orders_from_bitget(currency, list_exchange_not_support):
             if response.status_code == 200:
                 # Получение стакана заявок (order book)
                 order_book = response.json()
-                _save_text_to_file(order_book, 'gate.txt', symbol)
+
                 # Фильтрация ордеров на продажу и покупку
                 data = order_book['data']
-                for order_sell in data['asks']:
-                    orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
-                                       'price': float(order_sell[0]), 'quantity': float(order_sell[1])})
+                if data['asks'] != None:
+                    for order_sell in data['asks']:
+                        orders_sell.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                                           'price': float(order_sell[0]), 'quantity': float(order_sell[1])})
 
-                for order_buy in data['bids']:
-                    orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
-                                       'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
+                if data['bids'] != None:
+                    for order_buy in data['bids']:
+                        orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
+                                           'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
 
             else:
                 text = f"-------------------------------\n" \
@@ -380,7 +400,9 @@ def _get_orders_from_bitget(currency, list_exchange_not_support):
                 logging.error(text)
 
         except Exception as e:
-            text = 'При работе функции, получающей данные с ' + stock_market + f' произошла ошибка: {e}'
+            text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'response: {response}\n' \
+                   f'response.json: {order_book}\n'
             logging.error(text)
 
     return orders_sell, orders_buy
@@ -442,10 +464,10 @@ def all_list_from_all_stock_market(currency: str) -> list:
             all_list_from_all_stock_market.append([orders_sell_from_bitget, orders_buy_from_bitget])
 
     except Exception as e:
-        text = f'При выполнении функции, получающей данные со всех бирж и объединяющей эти данные в единый массив, произошла ошибка: {e}'
+        text = f'При выполнении функции, получающей данные со всех бирж и объединяющей эти данные в единый массив, произошла ошибка: {e}' \
+               f'all_list_from_all_stock_market: {all_list_from_all_stock_market}'
         logging.error(text)
 
-    _save_text_to_file(all_list_from_all_stock_market, 'all_list_from_all_stock_market.txt', currency)
     return all_list_from_all_stock_market
 
 

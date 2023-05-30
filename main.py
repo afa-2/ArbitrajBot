@@ -50,7 +50,7 @@ currencies = new_list
 
 # Логирование --------------------------------------------------------------------------------------------------------
 logging.basicConfig(
-    level=logging.ERROR,  # Уровень логирования
+    level=logging.INFO,  # Уровень логирования
     format='%(asctime)s [%(levelname)s] %(message)s',  # Формат сообщений
     handlers=[
         logging.FileHandler("my_log.log"),  # Запись логов в файл
@@ -118,12 +118,12 @@ while True:
         text = f"Полный круг. Время выполнения кода: {elapsed_time} секунд"
         for chat in chats_list:
             if len(chat) > 0:
-                logging.error(text)
+                logging.info(text)
                 bot.send_message(chat, text, parse_mode="HTML")
 
     except Exception as e:
         logging.error(e)
-        _send_message(bot, chats_list, "Упс. Какая-то ошибочка")
+        _send_message(bot, chats_list, "Упс. Какая-то ошибочка на самом верхнем уровне")
 
 
 bot.infinity_polling()
