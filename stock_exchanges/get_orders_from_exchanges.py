@@ -341,7 +341,7 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
                 if response_json['label'] != "INVALID_CURRENCY":
                     text = f"-------------------------------\n" \
                            f"Ошибка при получении данных (не 200): {response.text}\n" \
-                           f"биржа: {stock_market}" \
+                           f"биржа: {stock_market}\n" \
                            f"монета: {currency}"
                     logging.error(text)
 
