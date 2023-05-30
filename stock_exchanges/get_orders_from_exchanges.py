@@ -191,6 +191,7 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
     symbol = currency + 'USDT'
     # URL для получения стакана заявок (order book)
     url = f'https://api.binance.com/api/v3/depth?symbol={symbol}&limit=20'
+    list_msg_ignore = []
 
     orders_buy = []
     orders_sell = []
@@ -336,11 +337,13 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
                                        'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
 
             else:
-                text = f"-------------------------------\n" \
-                       f"Ошибка при получении данных (не 200): {response.text}\n" \
-                       f"биржа: {stock_market}" \
-                       f"монета: {currency}"
-                logging.error(text)
+                response_json = response.json()
+                if response_json['label'] != "INVALID_CURRENCY":
+                    text = f"-------------------------------\n" \
+                           f"Ошибка при получении данных (не 200): {response.text}\n" \
+                           f"биржа: {stock_market}" \
+                           f"монета: {currency}"
+                    logging.error(text)
 
         except Exception as e:
             text = f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
