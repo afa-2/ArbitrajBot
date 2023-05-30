@@ -1,44 +1,26 @@
 import requests
 import time
-import hashlib
 import hmac
-import uuid
+import hashlib
 
-api_key='V1IkiWjudAPBY7xsdc'
-secret_key='fLPtrlAkhENn9PXhjR0cw1wHeqanRBG90iiE'
-httpClient=requests.Session()
-recv_window=str(5000)
-url="https://api.bybit.com" # Testnet endpoint
+# Замените YOUR_API_KEY и YOUR_SECRET_KEY на свои ключи API Kukoin
+api_key = '6474e1256670fc00013d648a'
+secret_key = 'fe6c176a-2209-4abb-bcf8-7bc59012559c'
 
+# Определяем параметры запроса
+url = 'https://api.kucoin.com/api/v1/withdrawals/quotas'
+headers = {
+    'Content-Type': 'application/json',
+    'KC-API-KEY': api_key,
+    'KC-API-NONCE': str(int(time.time() * 1000)),
+}
 
-def HTTP_Request(endPoint,method,payload,Info):
-    global time_stamp
-    time_stamp=str(int(time.time() * 10 ** 3))
-    signature=genSignature(payload)
-    headers = {
-        'X-BAPI-API-KEY': api_key,
-        'X-BAPI-SIGN': signature,
-        'X-BAPI-SIGN-TYPE': '2',
-        'X-BAPI-TIMESTAMP': time_stamp,
-        'X-BAPI-RECV-WINDOW': recv_window,
-        'Content-Type': 'application/json'
-    }
-    if(method=="POST"):
-        response = httpClient.request(method, url+endPoint, headers=headers, data=payload)
-    else:
-        response = httpClient.request(method, url+endPoint+"?"+payload, headers=headers)
-    return response.json()
+# Создаем подпись запроса
+message = '/api/v1/withdrawals/quotas' + str(int(time.time() * 1000))
+signature = hmac.new(secret_key.encode(), message.encode(), hashlib.sha256).hexdigest()
+headers['KC-API-SIGNATURE'] = signature
 
-
-def genSignature(payload):
-    param_str= str(time_stamp) + api_key + recv_window + payload
-    hash = hmac.new(bytes(secret_key, "utf-8"), param_str.encode("utf-8"),hashlib.sha256)
-    signature = hash.hexdigest()
-    return signature
-
-
-endpoint="/v5/account/fee-rate"
-method="GET"
-params="symbol=ETHUSDT"
-result = HTTP_Request(endpoint,method,params,"List")
-print(result)
+# Отправляем запрос и получаем ответ
+response = requests.get(url, headers=headers)
+response_json = response.json()
+print(response)
