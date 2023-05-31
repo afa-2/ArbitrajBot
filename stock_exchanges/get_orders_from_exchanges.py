@@ -339,6 +339,7 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
         # перетираем значения, что бы если код упал с ошибкой раньше обозначения этих параметров, в лог файл была занесена пустая строка
         response = ''
         order_book = ''
+
         try:
             # Отправка запроса к API
             response = requests.get(url)
@@ -360,7 +361,8 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
 
             else:
                 response_json = response.json()
-                if response_json['label'] != "INVALID_CURRENCY":
+                list_ignore_label_error = ['INVALID_CURRENCY', 'INVALID_CURRENCY_PAIR']
+                if response_json['label'] not in list_ignore_label_error:
                     text = f"--------------------------------------------------------------------------------\n" \
                            f"Ошибка при получении данных (Ответ не 200): {response.text}\n" \
                            f"биржа: {stock_market}\n" \
