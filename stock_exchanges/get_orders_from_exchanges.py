@@ -60,7 +60,7 @@ def _get_orders_from_bybit(currency, list_exchange_not_support):
 
         except Exception as e:
             text = f'--------------------------------------------------------------------------------\n' \
-                   f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'Исключение. При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
                    f'response: {response}\n' \
                    f'response.json: {order_book}\n' \
                    f'--------------------------------------------------------------------------------'
@@ -120,7 +120,7 @@ def _get_orders_from_mexc(currency, list_exchange_not_support):
         except Exception as e:
             if response.json()['code'] != 30014:
                 text = f'--------------------------------------------------------------------------------\n' \
-                       f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                       f'Исключение. При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
                        f'response: {response}\n' \
                        f'response.json: {dict_with_orders}\n' \
                        f'--------------------------------------------------------------------------------'
@@ -180,7 +180,7 @@ def _get_orders_from_kucoin(currency, list_exchange_not_support):
 
         except Exception as e:
             text = f'--------------------------------------------------------------------------------\n' \
-                   f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'Исключение. При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
                    f'response: {response}\n' \
                    f'response.json: {order_book}\n' \
                    f'--------------------------------------------------------------------------------'
@@ -242,7 +242,7 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
 
         except Exception as e:
             text = f'--------------------------------------------------------------------------------\n' \
-                   f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'Исключение. При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
                    f'response: {response}\n' \
                    f'response.json: {order_book}\n' \
                    f'--------------------------------------------------------------------------------'
@@ -291,20 +291,25 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
                         orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
                                            'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
                 else:
-                    text = 'упс, ошибочка', order_book
+                    text = f"--------------------------------------------------------------------------------\n" \
+                           f"Ответ успешно получен (статус 200), но ошибка (status error = error).\n " \
+                           f"response.text: {response.text}\n" \
+                           f"биржа: {stock_market}\n" \
+                           f"монета: {currency}\n" \
+                           f"--------------------------------------------------------------------------------"
                     logging.error(text)
 
             else:
                 text = f"--------------------------------------------------------------------------------\n" \
                        f"Ошибка при получении данных (не 200): {response.text}\n" \
-                       f"биржа: {stock_market}" \
+                       f"биржа: {stock_market}\n" \
                        f"монета: {currency}" \
                        f"--------------------------------------------------------------------------------"
                 logging.error(text)
 
         except Exception as e:
             text = f'--------------------------------------------------------------------------------\n' \
-                   f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'Исключение. При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
                    f'response: {response}\n' \
                    f'response.json: {order_book}\n' \
                    f'--------------------------------------------------------------------------------'
@@ -364,7 +369,7 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
 
         except Exception as e:
             text = f'--------------------------------------------------------------------------------\n' \
-                   f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'Исключение. При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
                    f'response: {response}\n' \
                    f'response.json: {order_book}\n' \
                    f'--------------------------------------------------------------------------------'
@@ -426,7 +431,7 @@ def _get_orders_from_bitget(currency, list_exchange_not_support):
 
         except Exception as e:
             text = f'--------------------------------------------------------------------------------\n' \
-                   f'При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
+                   f'Исключение. При работе функции, получающей данные с {stock_market} произошла ошибка: {e}\n' \
                    f'response: {response}\n' \
                    f'response.json: {order_book}\n' \
                    f'--------------------------------------------------------------------------------'
