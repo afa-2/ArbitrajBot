@@ -174,7 +174,7 @@ def _get_orders_from_kucoin(currency, list_exchange_not_support):
                 text = f"--------------------------------------------------------------------------------\n" \
                        f"Ошибка при получении данных (не 200): {response.text}\n" \
                        f"биржа: {stock_market}\n" \
-                       f"монета: {currency}" \
+                       f"монета: {currency}\n" \
                        f"--------------------------------------------------------------------------------"
                 logging.error(text)
 
@@ -236,7 +236,7 @@ def _get_orders_from_binance(currency, list_exchange_not_support):
                     text = f"--------------------------------------------------------------------------------\n" \
                            f"Ошибка при получении данных (не 200): {response.text}\n" \
                            f"биржа: {stock_market}\n" \
-                           f"монета: {currency}" \
+                           f"монета: {currency}\n" \
                            f"--------------------------------------------------------------------------------"
                     logging.error(text)
 
@@ -291,19 +291,20 @@ def _get_orders_from_huobi(currency, list_exchange_not_support):
                         orders_buy.append({'stock_market': stock_market, 'link_currency_pair': link_currency_pair, 'symbol': symbol,
                                            'price': float(order_buy[0]), 'quantity': float(order_buy[1])})
                 else:
-                    text = f"--------------------------------------------------------------------------------\n" \
-                           f"Ответ успешно получен (статус 200), но ошибка (status error = error).\n " \
-                           f"response.text: {response.text}\n" \
-                           f"биржа: {stock_market}\n" \
-                           f"монета: {currency}\n" \
-                           f"--------------------------------------------------------------------------------"
-                    logging.error(text)
+                    if response.json()['err-msg'] != "invalid symbol":
+                        text = f"--------------------------------------------------------------------------------\n" \
+                               f"Ответ успешно получен (статус 200), но ошибка (status error = error).\n " \
+                               f"response.text: {response.text}\n" \
+                               f"биржа: {stock_market}\n" \
+                               f"монета: {currency}\n" \
+                               f"--------------------------------------------------------------------------------"
+                        logging.error(text)
 
             else:
                 text = f"--------------------------------------------------------------------------------\n" \
                        f"Ошибка при получении данных (не 200): {response.text}\n" \
                        f"биржа: {stock_market}\n" \
-                       f"монета: {currency}" \
+                       f"монета: {currency}\n" \
                        f"--------------------------------------------------------------------------------"
                 logging.error(text)
 
@@ -363,7 +364,7 @@ def _get_orders_from_gate(currency, list_exchange_not_support):
                     text = f"--------------------------------------------------------------------------------\n" \
                            f"Ошибка при получении данных (не 200): {response.text}\n" \
                            f"биржа: {stock_market}\n" \
-                           f"монета: {currency}" \
+                           f"монета: {currency}\n" \
                            f"--------------------------------------------------------------------------------"
                     logging.error(text)
 
@@ -424,8 +425,8 @@ def _get_orders_from_bitget(currency, list_exchange_not_support):
             else:
                 text = f"--------------------------------------------------------------------------------\n" \
                        f"Ошибка при получении данных (не 200): {response.text}\n" \
-                       f"биржа: {stock_market}" \
-                       f"монета: {currency}" \
+                       f"биржа: {stock_market}\n" \
+                       f"монета: {currency}\n" \
                        f"--------------------------------------------------------------------------------"
                 logging.error(text)
 
