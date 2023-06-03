@@ -126,6 +126,28 @@ while True:
         _send_message(bot, chats_list, "Упс. Какая-то ошибочка на самом верхнем уровне")
 
 
-bot.infinity_polling()
+def start_bot():
+    pause_sec = 30
+    try:
+        bot.infinity_polling()
 
+    except Exception as e:
+        text_for_log = f"-------------------------------------------------------------" \
+                       f"Бот упал" \
+                       f"Ошибка: {e}" \
+                       f"-------------------------------------------------------------"
+        logging.error(text_for_log)
+
+        text_for_msg = "Бот упал, ошибку смотри в логах"
+        _send_message(bot, chats_list, text_for_msg)
+
+        time = 0
+        while time < pause_sec:
+            time += 1
+            time.sleep(1)
+            print(f"До перезапуска бота осталось {pause_sec - time} секунд")
+
+        start_bot()
+
+start_bot()
 
