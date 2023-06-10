@@ -126,10 +126,7 @@ def main_script(first_message):
                 elapsed_time = round(elapsed_time, 2)
 
                 text = f"Полный круг. Время выполнения кода: {elapsed_time} секунд"
-                for chat in chats_list:
-                    if len(chat) > 0:
-                        logging.info(text)
-                        bot.send_message(chat, text, parse_mode="HTML")
+                logging.info(text)
 
             except Exception as e:
                 logging.error(e)
