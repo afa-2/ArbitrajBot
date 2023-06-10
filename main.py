@@ -27,20 +27,22 @@ def main_script(first_message):
         bybit_secret_key = config.get('keys', 'bybit_secret_key').strip()
         dict_with_keys['bybit'] = {'api_key': bybit_api_key, 'secret_key': bybit_secret_key}
 
-
         #  забираем настройки из ini
         # чаты
         chats = config.get('settings', 'chats').strip()
         chats_list = chats.strip('][').split(', ')
 
-        # min profit
         min_profit_from_conf = float(config.get('settings', 'min_profit').strip())
+        max_profit_from_conf = float(config.get('settings', 'max_profit').strip())
         min_profit_usd_from_conf = float(config.get('settings', 'min_profit_usd').strip())
+        min_invest_conf = float(config.get('settings', 'min_invest').strip())
         max_invest_conf = float(config.get('settings', 'max_invest').strip())
 
         # валюты
         currencies = config.get('settings', 'currencies').strip()
-        currencies = currencies.strip('][').split(', ')
+        currencies = currencies.replace(" ", "")
+        currencies = currencies.replace("\n", "")
+        currencies = currencies.strip('][').split(',')
         # удаляем повторяющиеся валюты
         new_list = []
         for currency in currencies:
@@ -63,9 +65,15 @@ def main_script(first_message):
 
         # сообщение, что бот запущен
         _send_message(bot, chats_list, f"Бот запущен, {first_message}")
-        _send_message(bot, chats_list, f"Количество монет: {len(currencies)}")
+        text = f"Настройки:\n\n" \
+               f"Количество монет: {len(currencies)}\n" \
+               f"Минимальный спред: {min_profit_from_conf}%\n" \
+               f"Максимальный спред: {max_profit_from_conf}%\n" \
+               f"Минимальный профит {min_profit_usd_from_conf}$\n" \
+               f"Минимальная сумма затрат на сделку: {min_invest_conf}$\n" \
+               f"Максимальная сумма затрат на сделку: {max_invest_conf}$\n" \
 
-
+        _send_message(bot, chats_list, text)
 
         while True:
             try:
@@ -83,9 +91,9 @@ def main_script(first_message):
                             profit_in_dol = order['margin_in_dol']  # профит в долларах
 
                             # если профит больше минимального и надо потратить меньше максимального
-                            if profit >= min_profit_from_conf \
-                                    and profit_in_dol >= min_profit_usd_from_conf \
-                                    and need_spent <= max_invest_conf:
+                            if max_profit_from_conf >= profit >= min_profit_from_conf \
+                                    and max_invest_conf >= need_spent >= min_invest_conf \
+                                    and profit_in_dol >= min_profit_usd_from_conf:
 
                                 # формируем спсок из всех ордеров на проаджу
                                 text_orders_sell = ''
@@ -94,20 +102,20 @@ def main_script(first_message):
                                     text_orders_sell += string
 
                                 # формируем сообщение
-                                message = f"<b>Валютная пара:</b> {currency}/usdt\n\n" \
-                                          f"<b>Покупка:</b>\n" \
-                                          f"Биржа: <a href='{orders_sell[0][1]}'>{orders_sell[0][0]}</a>\n" \
-                                          f"{text_orders_sell}\n" \
-                                          f"<b>Надо:</b>\n" \
-                                          f"потратить: {round(need_spent, 2)}$\n" \
-                                          f"что бы купить: {round(need_bought, 4)} монет\n\n" \
-                                          f"<b>Продажа:</b>\n" \
-                                          f"Биржа: <a href='{order_buy[1]}'>{order_buy[0]}</a>\n" \
-                                          f"Цена: {order_buy[3]}\n" \
-                                          f"Кол-во: {order_buy[4]}\n\n" \
-                                          f"<b>Тогда прибыль:</b>\n" \
-                                          f"В %: {profit}%\n"\
-                                          f"В $: {profit_in_dol}$\n"
+                                message = f"Пара: <b>{currency}/USDT</b>\n\n" \
+                                          f"" \
+                                          f"✅Покупка: <b><a href='{orders_sell[0][1]}'>{orders_sell[0][0]}</a></b>\n\n" \
+                                          f"" \
+                                          f"Выкупить объем: <b>{round(need_bought, 4)} {currency}</b>\n" \
+                                          f"{text_orders_sell}" \
+                                          f"Потратив <b>{round(need_spent, 2)} USDT</b>\n\n" \
+                                          f"" \
+                                          f"🔻Продажа: <b><a href='{order_buy[1]}'>{order_buy[0]}</a></b>\n" \
+                                          f"Продать: {order_buy[4]} {currency}\n" \
+                                          f"По цене: {order_buy[3]} USDT\n\n" \
+                                          f"" \
+                                          f"📊 Спред: {profit}%\n" \
+                                          f"💲 Профит: {profit_in_dol}$"
 
                                 if message != previous_message:  # если сообщение не равно предыдущему
                                     _send_message(bot, chats_list, message)
@@ -138,9 +146,6 @@ def main_script(first_message):
 
 
 main_script('первый запуск')
-
-
-
 
 #bot.infinity_polling()
 

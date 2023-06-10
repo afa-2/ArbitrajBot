@@ -1,26 +1,86 @@
-import requests
+import telebot
+import configparser
 import time
-import hmac
-import hashlib
+import logging
+from stock_exchanges.working_with_data import get_orders_from_exchanges
 
-# Замените YOUR_API_KEY и YOUR_SECRET_KEY на свои ключи API Kukoin
-api_key = '6474e1256670fc00013d648a'
-secret_key = 'fe6c176a-2209-4abb-bcf8-7bc59012559c'
 
-# Определяем параметры запроса
-url = 'https://api.kucoin.com/api/v1/withdrawals/quotas'
-headers = {
-    'Content-Type': 'application/json',
-    'KC-API-KEY': api_key,
-    'KC-API-NONCE': str(int(time.time() * 1000)),
-}
+def _send_message(bot, chats_list, message):
+    for chat in chats_list:
+        if len(chat) > 0:
+            bot.send_message(chat, message, parse_mode="HTML", disable_web_page_preview=True)
 
-# Создаем подпись запроса
-message = '/api/v1/withdrawals/quotas' + str(int(time.time() * 1000))
-signature = hmac.new(secret_key.encode(), message.encode(), hashlib.sha256).hexdigest()
-headers['KC-API-SIGNATURE'] = signature
 
-# Отправляем запрос и получаем ответ
-response = requests.get(url, headers=headers)
-response_json = response.json()
-print(response)
+# Настройки --------------------------------------------------------------------------------------------------------
+# забираем ключи из ini
+dict_with_keys = {}
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# telegram
+api = config.get('keys', 'api_key').strip()
+
+# bybit
+bybit_api_key = config.get('keys', 'bybit_api_key').strip()
+bybit_secret_key = config.get('keys', 'bybit_secret_key').strip()
+dict_with_keys['bybit'] = {'api_key': bybit_api_key, 'secret_key': bybit_secret_key}
+
+#  забираем настройки из ini
+# чаты
+chats = config.get('settings', 'chats').strip()
+chats_list = chats.strip('][').split(', ')
+
+min_profit_from_conf = float(config.get('settings', 'min_profit').strip())
+max_profit_from_conf = float(config.get('settings', 'max_profit').strip())
+min_profit_usd_from_conf = float(config.get('settings', 'min_profit_usd').strip())
+max_invest_conf = float(config.get('settings', 'max_invest').strip())
+
+# валюты
+currencies = config.get('settings', 'currencies').strip()
+currencies = currencies.replace(" ", "")
+currencies = currencies.replace("\n", "")
+currencies = currencies.strip('][').split(',')
+# удаляем повторяющиеся валюты
+new_list = []
+for currency in currencies:
+    if currency not in new_list:
+        new_list.append(currency)
+
+currencies = new_list
+
+# Логирование ------------------------------------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,  # Уровень логирования
+    format='%(asctime)s [%(levelname)s] %(message)s',  # Формат сообщений
+    handlers=[
+        logging.FileHandler("my_log.log"),  # Запись логов в файл
+    ]
+)
+
+# Программа --------------------------------------------------------------------------------------------------------
+bot = telebot.TeleBot(api)  # запускаем бота
+
+# сообщение, что бот запущен
+_send_message(bot, chats_list, f"Бот запущен")
+
+
+@bot.message_handler(content_types=['text'])
+def send_menu(message):
+    """
+    Слушает сообщения и на любое сообщение отправляет меню.
+    """
+    user_name = message.from_user.username
+
+    text = f"ID: {message.chat.id}"
+    bot.send_message(message.chat.id, text)
+
+
+    # если это общий чат
+
+
+bot.infinity_polling()
+
+
+
+
+
