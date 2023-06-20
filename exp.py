@@ -1,15 +1,7 @@
-import logging
-import time
+from datetime import datetime
+ts = float('1687264572855')
 
-logging.basicConfig(
-    level=logging.INFO,  # Уровень логирования
-    format='%(asctime)s [%(levelname)s] %(message)s',  # Формат сообщений
-    handlers=[
-        logging.FileHandler("my_log.log"),  # Запись логов в файл
-    ]
-)
-
-for i in range(30):
-    logging.info(i)
-    print(i)
-    time.sleep(1)
+# if you encounter a "year is out of range" error the timestamp
+# may be in milliseconds, try `ts /= 1000` in that case
+print(datetime.fromtimestamp(ts))
+datetime(2007, 3, 4, 0, 46, 43, 100000)

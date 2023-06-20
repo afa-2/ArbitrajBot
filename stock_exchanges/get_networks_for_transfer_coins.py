@@ -64,6 +64,7 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
             response = httpClient.request(method, url + endPoint, headers=headers, data=payload)
         else:
             response = httpClient.request(method, url + endPoint + "?" + payload, headers=headers)
+
         return response.json()
 
     dict_with_networks = {}
@@ -94,8 +95,7 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_bybit_one_coin"' \
                f' произошла ошибка: {e}, ' \
-               f'response: {response}, ' \
-               f'метка времени обновления: {response.headers.get("X-Bapi-Limit-Reset-Timestamp")}'
+               f'response: {response}, '
         logging.error(text)
         time.sleep(30)
 
@@ -117,7 +117,7 @@ def _get_networks_from_bybit_many_coin(dict_with_keys:dict, coins:list) -> dict:
     try:
         for coin in coins:
             dict_with_networks[coin.upper()] = _get_networks_from_bybit_one_coin(dict_with_keys, coin)
-            time.sleep(0.3)
+            time.sleep(0.5)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_bybit_many_coin" произошла ошибка: {e}'
