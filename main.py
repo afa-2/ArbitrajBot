@@ -150,7 +150,12 @@ def main_script(first_message):
                                       f"По цене: {order_buy[3]} USDT\n\n" \
                                       f"" \
                                       f"📊 Спред: {profit}%\n" \
-                                      f"💲 Профит: {profit_in_dol}$"
+                                      f"💲 Профит: {profit_in_dol}$\n\n" \
+                                      f"Сети:\n\n" \
+                                      f"{orders_sell[0][0]}:\n" \
+                                      f"{str(dict_with_networks[orders_sell[0][0]][currency])}\n\n" \
+                                      f"{order_buy[0]}:\n" \
+                                      f"{str(dict_with_networks[order_buy[0]][currency])}\n"
 
                             if message != previous_message:  # если сообщение не равно предыдущему
                                 _send_message(bot, chats_list, message)
