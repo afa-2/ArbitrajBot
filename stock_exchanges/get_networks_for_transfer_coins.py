@@ -93,7 +93,9 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_bybit_one_coin"' \
-               f' произошла ошибка: {e}, response: {response}'
+               f' произошла ошибка: {e}, ' \
+               f'response: {response}, ' \
+               f'метка времени обновления: {response.headers.get("X-Bapi-Limit-Reset-Timestamp")}'
         logging.error(text)
         time.sleep(30)
 
