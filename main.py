@@ -110,7 +110,6 @@ def main_script(first_message):
                 _send_message(bot, chats_list, 'Сети обновлены')
                 text = f'Сети обновлены. На это ушло {time_update_networks} секунд'
                 logging.info(text)
-                print(dict_with_networks)
 
             # работа с ордерами
             start_time = time.time()  # Засекаем время начала выполнения кода
