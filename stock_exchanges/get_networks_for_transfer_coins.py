@@ -13,8 +13,7 @@ import requests
 import time
 import hashlib
 import hmac
-import uuid
-import configparser
+import logging
 
 
 # Биржа Bybit ---------------------------------------------------------------------------------------------------------
@@ -41,18 +40,18 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
     {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
     'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}}
     """
-    api_key = dict_with_keys['bybit']['api_key']
-    secret_key = dict_with_keys['bybit']['secret_key']
-    coin = coin.upper()
 
-    httpClient = requests.Session()
-    recv_window = str(50000)
-    url = "https://api.bybit.com"
+    def _genSignature(payload, api_key, recv_window, secret_key):
+        param_str = str(time_stamp) + api_key + recv_window + payload
+        hash = hmac.new(bytes(secret_key, "utf-8"), param_str.encode("utf-8"), hashlib.sha256)
+        signature = hash.hexdigest()
+        return signature
 
-    def HTTP_Request(endPoint, method, payload, Info):
+    def _HTTP_Request(endPoint, method, payload, url, api_key, secret_key, recv_window):
+        httpClient = requests.Session()
         global time_stamp
         time_stamp = str(int(time.time() * 10 ** 3))
-        signature = genSignature(payload)
+        signature = _genSignature(payload, api_key, recv_window, secret_key)
         headers = {
             'X-BAPI-API-KEY': api_key,
             'X-BAPI-SIGN': signature,
@@ -67,26 +66,36 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
             response = httpClient.request(method, url + endPoint + "?" + payload, headers=headers)
         return response.json()
 
-    def genSignature(payload):
-        param_str = str(time_stamp) + api_key + recv_window + payload
-        hash = hmac.new(bytes(secret_key, "utf-8"), param_str.encode("utf-8"), hashlib.sha256)
-        signature = hash.hexdigest()
-        return signature
-
     dict_with_networks = {}
+    response = ''
 
-    endpoint = "/v5/asset/coin/query-info"
-    method = "GET"
-    params = f"coin={coin}"
-    result = HTTP_Request(endpoint, method, params, "List")
+    try:
+        url = "https://api.bybit.com"
+        api_key = dict_with_keys['bybit']['api_key']
+        secret_key = dict_with_keys['bybit']['secret_key']
+        coin = coin.upper()
 
-    for chain in result['result']['rows'][0]['chains']:
-        dict_with_params = {}
-        dict_with_params['fee'] = float(chain['withdrawFee'])
-        dict_with_params['withdraw_min'] = float(chain['withdrawMin'])
-        dict_with_params['percentage_fee'] = float(chain['withdrawPercentageFee'])
+        recv_window = str(50000)
 
-        dict_with_networks[chain['chain'].upper()] = dict_with_params
+        endpoint = "/v5/asset/coin/query-info"
+        method = "GET"
+        params = f"coin={coin}"
+        response = _HTTP_Request(endpoint, method, params, url, api_key, secret_key, recv_window)
+
+        if len(response['result']['rows']) > 0:  # если в ответе вообще что-нибудь есть
+            for chain in response['result']['rows'][0]['chains']:
+                dict_with_params = {}
+                dict_with_params['fee'] = float(chain['withdrawFee'])
+                dict_with_params['withdraw_min'] = float(chain['withdrawMin'])
+                dict_with_params['percentage_fee'] = float(chain['withdrawPercentageFee'])
+
+                dict_with_networks[chain['chain'].upper()] = dict_with_params
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_bybit_one_coin"' \
+               f' произошла ошибка: {e}, response: {response}'
+        logging.error(text)
+        time.sleep(30)
 
     return dict_with_networks
 
@@ -102,8 +111,15 @@ def _get_networks_from_bybit_many_coin(dict_with_keys:dict, coins:list) -> dict:
 
     """
     dict_with_networks = {}
-    for coin in coins:
-        dict_with_networks[coin.upper()] = _get_networks_from_bybit_one_coin(dict_with_keys, coin)
+
+    try:
+        for coin in coins:
+            dict_with_networks[coin.upper()] = _get_networks_from_bybit_one_coin(dict_with_keys, coin)
+            time.sleep(0.6)
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_bybit_many_coin" произошла ошибка: {e}'
+        logging.error(text)
 
     return dict_with_networks
 
@@ -139,38 +155,44 @@ def _get_networks_from_mexc_many_coin(dict_with_keys: dict) -> dict:
             'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
      'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
     """
-    api_key = dict_with_keys['mexc']['api_key']
-    secret_key = dict_with_keys['mexc']['secret_key']
-
-    payload = {
-        'timestamp': str(int(time.time() * 10 ** 3))
-    }
-
-    # create signature
-    query_string = '&'.join([f"{k}={v}" for k, v in payload.items()])
-    signature = hmac.new(secret_key.encode(), query_string.encode(), hashlib.sha256).hexdigest()
-
-    # add signature to payload
-    payload['signature'] = signature
-
-    # send request
-    url = 'https://api.mexc.com/api/v3/capital/config/getall'
-    headers = {'X-MEXC-APIKEY': api_key}
-    response = requests.get(url, headers=headers, params=payload)
-    response = response.json()
-
     dict_wint_coins_and_networks = {}
-    for row_with_coin_and_list_networks in response:
-        coin = row_with_coin_and_list_networks['coin'].upper()
-        dict_wint_coins_and_networks[coin] = {}
+    response = ''
 
-        for row_network in row_with_coin_and_list_networks['networkList']:
-            network = row_network['network'].upper()
-            fee = float(row_network['withdrawFee'])
-            withdraw_min = float(row_network['withdrawMin'])
-            percentage_fee = 0
-            dict_wint_coins_and_networks[coin][network] = {'fee': fee, 'withdraw_min': withdraw_min,
-                                                           'percentage_fee': percentage_fee}
+    try:
+        api_key = dict_with_keys['mexc']['api_key']
+        secret_key = dict_with_keys['mexc']['secret_key']
+
+        payload = {
+            'timestamp': str(int(time.time() * 10 ** 3))
+        }
+
+        # create signature
+        query_string = '&'.join([f"{k}={v}" for k, v in payload.items()])
+        signature = hmac.new(secret_key.encode(), query_string.encode(), hashlib.sha256).hexdigest()
+
+        # add signature to payload
+        payload['signature'] = signature
+
+        # send request
+        url = 'https://api.mexc.com/api/v3/capital/config/getall'
+        headers = {'X-MEXC-APIKEY': api_key}
+        response = requests.get(url, headers=headers, params=payload)
+        response = response.json()
+
+        for row_with_coin_and_list_networks in response:
+            coin = row_with_coin_and_list_networks['coin']
+            dict_wint_coins_and_networks[coin.upper()] = {}
+
+            for row_network in row_with_coin_and_list_networks['networkList']:
+                network = row_network['network'].upper()
+                fee = float(row_network['withdrawFee'])
+                withdraw_min = float(row_network['withdrawMin'])
+                percentage_fee = 0
+                dict_wint_coins_and_networks[coin][network] = {'fee': fee, 'withdraw_min': withdraw_min,
+                                                               'percentage_fee': percentage_fee}
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_mexc_many_coin" произошла ошибка: {e}, response: {response}'
+        logging.error(text)
 
     return dict_wint_coins_and_networks
 
@@ -206,19 +228,29 @@ def _get_networks_from_kucoin_one_coin(coin: str) -> dict:
     }
     """
     dict_for_return = {}  # словарь для возврата
+    response = ''
 
-    coin = coin.upper()
-    url = f'https://api.kucoin.com/api/v2/currencies/{coin}'
-    res = requests.get(url).json()
-    chains = res['data']['chains']
+    try:
+        coin = coin.upper()
+        url = f'https://api.kucoin.com/api/v2/currencies/{coin}'
+        response = requests.get(url).json()
 
-    for chain in chains:
-        fee = float(chain['withdrawalMinFee'])
-        withdraw_min = float(chain['withdrawalMinSize'])
-        percentage_fee = 0
-        dict_for_return[chain['chainName']] = {'fee': fee,
-                                               'withdraw_min': withdraw_min,
-                                               'percentage_fee': percentage_fee}
+        if response['code'] != '900003':
+            chains = response['data']['chains']
+
+            for chain in chains:
+                fee = float(chain['withdrawalMinFee'])
+                withdraw_min = float(chain['withdrawalMinSize'])
+                percentage_fee = 0
+                dict_for_return[chain['chainName']] = {'fee': fee,
+                                                       'withdraw_min': withdraw_min,
+                                                       'percentage_fee': percentage_fee}
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_kucoin_one_coin" произошла ошибка: {e}, ' \
+               f'response: {response}'
+        logging.error(text)
+        time.sleep(30)
 
     return dict_for_return
 
@@ -232,10 +264,16 @@ def _get_networks_from_kucoin_many_coin(coins:list) -> dict:
             'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
      'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
     """
-
     dict_with_networks = {}
-    for coin in coins:
-        dict_with_networks[coin.upper()] = _get_networks_from_kucoin_one_coin(coin)
+
+    try:
+        for coin in coins:
+            dict_with_networks[coin.upper()] = _get_networks_from_kucoin_one_coin(coin)
+            time.sleep(1)
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_kucoin_many_coin" произошла ошибка: {e}'
+        logging.error(text)
 
     return dict_with_networks
 
@@ -266,19 +304,53 @@ def _get_networks_from_huobi_one_coin(coin: str) -> dict:
     }
     """
     dict_for_return = {}  # словарь для возврата
-    coin = coin.lower()
-    url = f'https://api.huobi.pro/v2/reference/currencies?currency={coin}'
-    res = requests.get(url).json()
-    chains = res['data'][0]['chains']
+    response = ''
 
-    for chain in chains:
-        fee = float(chain['transactFeeWithdraw'])
-        withdraw_min = float(chain['minWithdrawAmt'])
-        percentage_fee = 0
-        dict_for_return[chain['displayName']] = {'fee': fee,
-                                               'withdraw_min': withdraw_min,
-                                               'percentage_fee': percentage_fee}
+    try:
+        coin = coin.lower()
+        url = f'https://api.huobi.pro/v2/reference/currencies?currency={coin}'
+        response = requests.get(url).json()
+
+        if len(response['data']) > 0:
+            chains = response['data'][0]['chains']
+
+            for chain in chains:
+                fee = float(chain['transactFeeWithdraw'])
+                withdraw_min = float(chain['minWithdrawAmt'])
+                percentage_fee = 0
+                dict_for_return[chain['displayName']] = {'fee': fee,
+                                                       'withdraw_min': withdraw_min,
+                                                       'percentage_fee': percentage_fee}
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_huobi_one_coin" произошла ошибка: {e}, response: {response}'
+        logging.error(text)
+        time.sleep(30)
+
     return dict_for_return
+
+
+def _get_networks_from_huobi_many_coin(coins:list) -> dict:
+    """
+    Функция получает список сетей для перевода монет с биржи и на биржу Huobi в отношении всех переданных монет
+    Возвращает словарь типа
+    {'ETH': {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
+            'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+            'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
+     'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
+    """
+
+    dict_with_networks = {}
+
+    try:
+        for coin in coins:
+            dict_with_networks[coin.upper()] = _get_networks_from_huobi_one_coin(coin)
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_huobi_many_coin" произошла ошибка: {e}'
+        logging.error(text)
+
+    return dict_with_networks
 
 
 # Биржа bitget --------------------------------------------------------------------------------------------------------
@@ -317,41 +389,111 @@ def _get_networks_from_bitget_many_coin():
     'USDT': {'OMNI': {'fee': 15.0, 'withdraw_min': 100.0, 'percentage_fee': 0.0}}}
     """
     dict_wint_coins_and_networks = {}
+    response = ''
 
-    url = f'https://api.bitget.com/api/spot/v1/public/currencies'
-    res = requests.get(url).json()
+    try:
+        url = f'https://api.bitget.com/api/spot/v1/public/currencies'
+        response = requests.get(url).json()
 
-    data = res['data']
-    for row_with_coin in data:
-        coin = row_with_coin['coinName'].upper()
-        dict_wint_coins_and_networks[coin] = {}
+        data = response['data']
+        for row_with_coin in data:
+            coin = row_with_coin['coinName'].upper()
+            dict_wint_coins_and_networks[coin] = {}
 
-        for row_network in row_with_coin['chains']:
-            network = row_network['chain'].upper()
-            fee = float(row_network['withdrawFee'])
-            withdraw_min = float(row_network['minWithdrawAmount'])
-            percentage_fee = 0
-            dict_wint_coins_and_networks[coin][network] = {'fee': fee, 'withdraw_min': withdraw_min,
-                                                           'percentage_fee': percentage_fee}
+            for row_network in row_with_coin['chains']:
+                network = row_network['chain'].upper()
+                fee = float(row_network['withdrawFee'])
+                withdraw_min = float(row_network['minWithdrawAmount'])
+                percentage_fee = 0
+                dict_wint_coins_and_networks[coin][network] = {'fee': fee, 'withdraw_min': withdraw_min,
+                                                               'percentage_fee': percentage_fee}
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_bitget_many_coin" произошла ошибка: {e}, ' \
+               f'response: {response}'
+        logging.error(text)
 
     return dict_wint_coins_and_networks
 
 
-def _get_networks_from_huobi_many_coin(coins:list) -> dict:
+# Биржа gate ----------------------------------------------------------------------------------------------------------
+def _get_networks_from_gate_many_coin(dict_with_keys: dict) -> dict:
     """
-    Функция получает список сетей для перевода монет с биржи и на биржу Huobi в отношении всех переданных монет
-    Возвращает словарь типа
+    Функция получает список сетей для множества монет с биржи gate
+    :param dict_with_keys:
+    :param dict_with_keys: словарь с ключами для доступа к API биржи
+    При запросе по API с биржи мы получаем словарь, следующего вида:
+    [{'currency': 'GT', 'name': 'GateToken', 'name_cn': '狗头', 'deposit': '0', 'withdraw_percent': '0%',
+    'withdraw_fix': '0.025', 'withdraw_day_limit': '500000', 'withdraw_day_limit_remain': '499999',
+    'withdraw_amount_mini': '0.125', 'withdraw_eachtime_limit': '499999',
+    'withdraw_fix_on_chains': {'ETH': '0.89', 'GTEVM': '0.002'}},
+    {'currency': 'CNYX', 'name': 'CNHT', 'name_cn': 'CNHT', 'deposit': '0', 'withdraw_percent': '0%',
+    'withdraw_fix': '10', 'withdraw_day_limit': '20000', 'withdraw_day_limit_remain': '19999',
+    'withdraw_amount_mini': '10.1', 'withdraw_eachtime_limit': '19999'}]
+    Где:
+    - 'currency': 'GT' - это название монеты
+    - 'name': 'GateToken' - это название монеты
+    - 'name_cn': '狗头' - это название монеты на китайском
+    - 'deposit': '0' - это параметр, который указывает, можно ли пополнить монету
+    - 'withdraw_percent': '0%' - это процент комиссии за вывод монеты
+    - 'withdraw_fix': '0.025' - это фиксированная комиссия за вывод монеты
+    - 'withdraw_day_limit': '500000' - это максимальное количество монет, которое можно вывести за один день
+    - 'withdraw_day_limit_remain': '499999' - это количество монет, которое можно вывести за один день
+    - 'withdraw_amount_mini': '0.125' - это минимальное количество монет, которое можно вывести за один раз
+    - 'withdraw_eachtime_limit': '499999' - это максимальное количество монет, которое можно вывести за один раз
+    - 'withdraw_fix_on_chains': {'ETH': '0.89', 'GTEVM': '0.002'} - это фиксированная комиссия за вывод монеты на сети
+
+    Функция возвращает словарь типа
     {'ETH': {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
             'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
             'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
      'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
     """
+    def gen_sign(method, url, query_string=None, payload_string=None):
+        key = dict_with_keys['gate']['api_key']       # api_key
+        secret = dict_with_keys['gate']['secret_key']    # api_secret
 
-    dict_with_networks = {}
-    for coin in coins:
-        dict_with_networks[coin.upper()] = _get_networks_from_huobi_one_coin(coin)
+        t = time.time()
+        m = hashlib.sha512()
+        m.update((payload_string or "").encode('utf-8'))
+        hashed_payload = m.hexdigest()
+        s = '%s\n%s\n%s\n%s\n%s' % (method, url, query_string or "", hashed_payload, t)
+        sign = hmac.new(secret.encode('utf-8'), s.encode('utf-8'), hashlib.sha512).hexdigest()
+        return {'KEY': key, 'Timestamp': str(t), 'SIGN': sign}
 
-    return dict_with_networks
+    dict_with_coins_and_networks = {}
+    response = ''
+
+    try:
+        host = "https://api.gateio.ws"
+        prefix = "/api/v4"
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+
+        url = '/wallet/withdraw_status'
+        query_param = ''
+        # for `gen_sign` implementation, refer to section `Authentication` above
+        sign_headers = gen_sign('GET', prefix + url, query_param)
+        headers.update(sign_headers)
+        response = requests.request('GET', host + prefix + url, headers=headers)
+        data = response.json()
+
+        for row in data:
+            coin = row['currency'].upper()
+            dict_with_coins_and_networks[coin] = {}
+            if 'withdraw_fix_on_chains' in row:
+                for network in row['withdraw_fix_on_chains']:
+                    fee = float(row['withdraw_fix_on_chains'][network])
+                    withdraw_min = float(row['withdraw_amount_mini'])
+                    percentage_fee = float(row['withdraw_percent'].replace('%', '')) / 100
+                    dict_with_coins_and_networks[coin][network.upper()] = {'fee': fee, 'withdraw_min': withdraw_min,
+                                                                   'percentage_fee': percentage_fee}
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_gate_many_coin" произошла ошибка: {e}' \
+               f'response: {response}'
+        logging.error(text)
+
+    return dict_with_coins_and_networks
 
 
 # Общая функция, которая получает сети со всех бирж -------------------------------------------------------------------
@@ -365,37 +507,50 @@ def get_networks_for_transfer_coins(dict_with_keys:dict, coins:list) -> dict:
 
     dict_with_networks = {}
 
-    # добавляем последнее время обновления
-    now = datetime.datetime.now()
-    dict_with_networks['last_update'] = now
+    try:
+        # добавляем последнее время обновления
+        now = datetime.datetime.now()
+        dict_with_networks['last_update'] = now
 
-    # получаем сети с биржи Bybit
-    dict_with_networks['bybit'] = _get_networks_from_bybit_many_coin(dict_with_keys, coins)
+        # получаем сети с биржи Bybit
+        logging.info('Получаем сети с Bybit')
+        dict_with_networks['bybit'] = _get_networks_from_bybit_many_coin(dict_with_keys, coins)
 
-    # получаем сети с биржи mexc
-    dict_with_networks['mexc'] = _get_networks_from_mexc_many_coin(dict_with_keys)
+        # получаем сети с биржи Mexc
+        logging.info('Получаем сети с Mexc')
+        dict_with_networks['mexc'] = _get_networks_from_mexc_many_coin(dict_with_keys)
 
-    # получаем сети с биржи Kucoin
-    dict_with_networks['kucoin'] = _get_networks_from_kucoin_many_coin(coins)
+        # получаем сети с биржи Kucoin
+        logging.info('Получаем сети с Kucoin')
+        dict_with_networks['kucoin'] = _get_networks_from_kucoin_many_coin(coins)
 
-    # получаем сети с биржи Huobi
-    dict_with_networks['huobi'] = _get_networks_from_huobi_many_coin(coins)
+        # получаем сети с биржи Huobi
+        logging.info('Получаем сети с Huobi')
+        dict_with_networks['huobi'] = _get_networks_from_huobi_many_coin(coins)
 
-    # получаем сети с биржи Bitget
-    dict_with_networks['bitget'] = _get_networks_from_bitget_many_coin()
+        # получаем сети с биржи Bitget
+        logging.info('Получаем сети с Bitget')
+        dict_with_networks['bitget'] = _get_networks_from_bitget_many_coin()
+
+        # получаем сети с биржи Gate
+        logging.info('Получаем сети с Gate')
+        dict_with_networks['gate'] = _get_networks_from_gate_many_coin(dict_with_keys)
+
+    except Exception as e:
+        text = f'При выполнении функции "get_networks_for_transfer_coins" произошла ошибка: {e}'
+        logging.error(text)
 
     return dict_with_networks
 
 
-dict_with_keys = {'bybit': {'api_key': 'V1IkiWjudAPBY7xsdc', 'secret_key': 'fLPtrlAkhENn9PXhjR0cw1wHeqanRBG90iiE'},
-                  'mexc': {'api_key': 'mx0vglCjkyejHhko29', 'secret_key': '0a4699a4461a4b358b50c509e1c1f8e8'}}
-coins = ['eth', 'btc']
 
 
-
-
-result = _get_networks_from_huobi_many_coin(['eth', 'btc'])
-result = get_networks_for_transfer_coins(dict_with_keys, coins)
-
-for i in result:
-    print(i, result[i])
+# dict_with_keys = {'bybit': {'api_key': 'V1IkiWjudAPBY7xsdc', 'secret_key': 'fLPtrlAkhENn9PXhjR0cw1wHeqanRBG90iiE'},
+#                   'mexc': {'api_key': 'mx0vglCjkyejHhko29', 'secret_key': '0a4699a4461a4b358b50c509e1c1f8e8'},
+#                   'gate': {'api_key': '90323691e2d247ab1f7bccbf187e6567', 'secret_key': 'a4b8540fc1d95822f79dcf362103e0e253805dd693befb8c0193dddd65384fad'}}
+# #
+# # coins = ['eth', 'btc']
+#
+# result = _get_networks_from_bybit_one_coin(dict_with_keys, 'eth')
+# # result = get_networks_for_transfer_coins(dict_with_keys, coins)
+# print(result)
