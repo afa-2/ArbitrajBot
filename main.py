@@ -125,6 +125,22 @@ def main_script(first_message):
                         profit = order['margin'] # профит в процентах
                         profit_in_dol = order['margin_in_dol']  # профит в долларах
 
+                        name_exchange_where_buy = orders_sell[0][0]  # название биржи, где надо покупать монеты
+                        name_exchange_where_sell = order_buy[0]  #  название биржи, где надо продавать монеты
+
+                        # сети ----------------------------------------------------
+                        # сети той биржи, на которой надо купить
+                        networks_on_exchanges_where_need_buy = {}
+                        if name_exchange_where_buy in dict_with_networks:
+                            if currency in dict_with_networks[name_exchange_where_buy]:
+                                networks_on_exchanges_where_need_buy = dict_with_networks[name_exchange_where_buy][currency]
+
+                        # сети той биржи, на которой надо продать
+                        networks_on_exchanges_where_need_sell = {}
+                        if name_exchange_where_sell in dict_with_networks:
+                            if currency in dict_with_networks[name_exchange_where_sell]:
+                                networks_on_exchanges_where_need_sell = dict_with_networks[name_exchange_where_sell][currency]
+
                         # если профит больше минимального и надо потратить меньше максимального
                         if max_profit_from_conf >= profit >= min_profit_from_conf \
                                 and max_invest_conf >= need_spent >= min_invest_conf \
@@ -139,23 +155,23 @@ def main_script(first_message):
                             # формируем сообщение
                             message = f"Пара: <b>{currency}/USDT</b>\n\n" \
                                       f"" \
-                                      f"✅Покупка: <b><a href='{orders_sell[0][1]}'>{orders_sell[0][0]}</a></b>\n\n" \
+                                      f"✅Покупка: <b><a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a></b>\n\n" \
                                       f"" \
                                       f"Выкупить объем: <b>{round(need_bought, 4)} {currency}</b>\n" \
                                       f"{text_orders_sell}" \
                                       f"Потратив <b>{round(need_spent, 2)} USDT</b>\n\n" \
                                       f"" \
-                                      f"🔻Продажа: <b><a href='{order_buy[1]}'>{order_buy[0]}</a></b>\n" \
+                                      f"🔻Продажа: <b><a href='{name_exchange_where_sell}'>{order_buy[0]}</a></b>\n" \
                                       f"Продать: {order_buy[4]} {currency}\n" \
                                       f"По цене: {order_buy[3]} USDT\n\n" \
                                       f"" \
                                       f"📊 Спред: {profit}%\n" \
                                       f"💲 Профит: {profit_in_dol}$\n\n" \
                                       f"Сети:\n\n" \
-                                      f"{orders_sell[0][0]}:\n" \
-                                      f"{str(dict_with_networks[orders_sell[0][0]][currency])}\n\n" \
-                                      f"{order_buy[0]}:\n" \
-                                      f"{str(dict_with_networks[order_buy[0]][currency])}\n"
+                                      f"{name_exchange_where_buy}:\n" \
+                                      f"{networks_on_exchanges_where_need_buy}\n\n" \
+                                      f"{name_exchange_where_sell}:\n" \
+                                      f"{networks_on_exchanges_where_need_sell}\n"
 
                             if message != previous_message:  # если сообщение не равно предыдущему
                                 _send_message(bot, chats_list, message)
