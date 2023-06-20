@@ -115,7 +115,7 @@ def _get_networks_from_bybit_many_coin(dict_with_keys:dict, coins:list) -> dict:
     try:
         for coin in coins:
             dict_with_networks[coin.upper()] = _get_networks_from_bybit_one_coin(dict_with_keys, coin)
-            time.sleep(0.2)
+            time.sleep(0.3)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_bybit_many_coin" произошла ошибка: {e}'
