@@ -52,7 +52,7 @@ def main_script(first_message):
         max_invest_conf = float(config.get('settings', 'max_invest').strip())
 
         update_networks = float(config.get('settings', 'update_networks').strip())  # время обновления сетей
-        publish_without_networks = bool(config.get('settings', 'publish_without_networks').strip())  # публиковать предложения, если нет совпадения по сетям
+        publish_without_networks = str(config.get('settings', 'publish_without_networks').strip())  # публиковать предложения, если нет совпадения по сетям
 
         # валюты
         currencies = config.get('settings', 'currencies').strip()
@@ -123,7 +123,6 @@ def main_script(first_message):
                 all_orders = data_processing(all_orders_from_all_exchanges, dict_with_networks)
 
                 if len(all_orders) > 0:  # если ордеров больше 0
-                    previous_message = ''
                     for order in all_orders:  # в отношении каждого ордера
                         # переменные ---------------------------------------------
                         order_buy = order['order_buy'] # ордер на покупку
@@ -144,8 +143,8 @@ def main_script(first_message):
                             # публикумем сообщение в телеграмм только в том слаче, если:
                             # 1. в настройках указано, что надо публиковать в том числе, если сетей нет
                             # 2. в настройках указано, что надо публиковать только если есть сети и сети есть
-                            if publish_without_networks == True \
-                                    or (publish_without_networks == False and len(order['matching_networks']) > 0):
+                            if publish_without_networks == 'Yes' \
+                                    or (publish_without_networks == 'No' and len(order['matching_networks']) > 0):
 
                                 # формируем спсок из всех ордеров на проаджу
                                 text_orders_sell = ''
@@ -172,9 +171,6 @@ def main_script(first_message):
                                           f"Все совпадающие сети: {order['matching_networks']}\n" \
                                           f"Самая выгодная сеть: {order['network_with_min_fee']}"
 
-                                if message != previous_message:  # если сообщение не равно предыдущему
-                                    _send_message(bot, chats_list, message)
-                                previous_message = message  # сохраняем сообщение как предудщее, для проверки, что бы они не повторялись
 
             end_time = time.time()  # Засекаем время окончания выполнения кода
             elapsed_time = end_time - start_time  # Вычисляем затраченное время
