@@ -3,7 +3,8 @@ import configparser
 import time
 import logging
 import datetime
-from stock_exchanges.working_with_data import get_orders_from_exchanges
+from stock_exchanges.get_orders_from_exchanges import all_list_from_all_stock_market
+from stock_exchanges.working_with_data import data_processing
 from stock_exchanges.get_networks_for_transfer_coins import get_networks_for_transfer_coins
 
 
@@ -114,10 +115,16 @@ def main_script(first_message):
             # работа с ордерами
             start_time = time.time()  # Засекаем время начала выполнения кода
             for currency in currencies:  # в отношении каждой валюты
-                all_orders = get_orders_from_exchanges(currency)  # получаем все ордера
+                # получаем ордера с бирж. На этом этапе мы получаем просто список ордеров на продажу и ордер на покупку
+                all_orders_from_all_exchanges = all_list_from_all_stock_market(currency)
+                # обрабатываем сырые данные, находим выгодные предложения, считаем маржу,
+                # формируем массив с релевантными данными
+                all_orders = data_processing(all_orders_from_all_exchanges, dict_with_networks)
+
                 if len(all_orders) > 0:  # если ордеров больше 0
                     previous_message = ''
                     for order in all_orders:  # в отношении каждого ордера
+                        # переменные ---------------------------------------------
                         order_buy = order['order_buy'] # ордер на покупку
                         orders_sell = order['orders_sell']  # ордера на продажу
                         need_spent = order['need_spent']  # надо потратить
@@ -128,7 +135,7 @@ def main_script(first_message):
                         name_exchange_where_buy = orders_sell[0][0]  # название биржи, где надо покупать монеты
                         name_exchange_where_sell = order_buy[0]  #  название биржи, где надо продавать монеты
 
-                        # сети ----------------------------------------------------
+                        # сети
                         # сети той биржи, на которой надо купить
                         networks_on_exchanges_where_need_buy = {}
                         if name_exchange_where_buy in dict_with_networks:
@@ -140,6 +147,26 @@ def main_script(first_message):
                         if name_exchange_where_sell in dict_with_networks:
                             if currency in dict_with_networks[name_exchange_where_sell]:
                                 networks_on_exchanges_where_need_sell = dict_with_networks[name_exchange_where_sell][currency]
+
+                        #  ищем совпадения по сетям и подбираем самую выгодную
+                        list_networks_matches = []  # список совпадающих сетей
+                        selected_network = {'network_name': '', 'fee': 0}  # выбранная сеть
+                        for network in networks_on_exchanges_where_need_buy:
+                            if network in networks_on_exchanges_where_need_sell:
+                                # комиссия в сети с первой биржи
+                                fee_network_from_exchange_1 = float(networks_on_exchanges_where_need_buy[network])
+                                # комиссия в ети во второй бирже
+                                fee_network_from_exchange_2 = float(networks_on_exchanges_where_need_sell[network])
+                                # выбираем самую большую комиссию
+                                fee_network = max(fee_network_from_exchange_1, fee_network_from_exchange_2)
+
+                                if selected_network['network_name'] == '':  # если ранее не заносили данные
+                                    selected_network['network_name'] = network
+                                    selected_network['fee'] = fee_network
+                                else:  # если данные заносились, определяем, у какой сети процент меньше
+                                    if fee_network < selected_network['fee']:  # если у новой сети комиссия меньше
+                                        selected_network['network_name'] = network
+                                        selected_network['fee'] = fee_network
 
                         # если профит больше минимального и надо потратить меньше максимального
                         if max_profit_from_conf >= profit >= min_profit_from_conf \
@@ -166,11 +193,11 @@ def main_script(first_message):
                                       f"По цене: {order_buy[3]} USDT\n\n" \
                                       f"" \
                                       f"📊 Спред: {profit}%\n" \
-                                      f"💲 Профит: {profit_in_dol}$\n\n" \
-                                      f"Сети:\n\n" \
-                                      f"{name_exchange_where_buy}:\n" \
-                                      f"{networks_on_exchanges_where_need_buy}\n\n" \
-                                      f"{name_exchange_where_sell}:\n" \
+                                      f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
+                                      f"Для проверки, найденные сети:\n\n" \
+                                      f"{name_exchange_where_buy}: " \
+                                      f"{networks_on_exchanges_where_need_buy}\n" \
+                                      f"{name_exchange_where_sell}: " \
                                       f"{networks_on_exchanges_where_need_sell}\n"
 
                             if message != previous_message:  # если сообщение не равно предыдущему

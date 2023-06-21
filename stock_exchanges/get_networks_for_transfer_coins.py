@@ -504,7 +504,24 @@ def get_networks_for_transfer_coins(dict_with_keys:dict, coins:list) -> dict:
     Получить сети для перевода монет
     :param dict_with_keys:  словарь с ключами для доступа к биржам по API
     :param coins: список монет
-    :return: словарь с биржами и сетями для перевода монет
+
+    Принцип работы: опрашиваем все биржи по api и получаем для каждой монеты сети, через которые можно переводить монеты
+
+    Возвращаемый словарь имеет вид:
+    {'last_update': datetime.datetime(2023, 6, 21, 16, 8, 47, 390196),
+    'bybit': {'BTC':
+                 {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
+                 'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
+                 'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
+             'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
+             'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
+    'mexc': {'BTC':
+             {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
+             'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
+             'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
+         'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
+         'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
+    }
     """
 
     dict_with_networks = {}
@@ -542,6 +559,7 @@ def get_networks_for_transfer_coins(dict_with_keys:dict, coins:list) -> dict:
         text = f'При выполнении функции "get_networks_for_transfer_coins" произошла ошибка: {e}'
         logging.error(text)
 
+    print(dict_with_networks)
     return dict_with_networks
 
 

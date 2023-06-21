@@ -1,17 +1,68 @@
-from stock_exchanges.get_orders_from_exchanges import all_list_from_all_stock_market
 import logging
 
 
 def _searching_currency_differences(list_with_orders_from_all_stock_market: list) -> list:
     """
-    Берем все ордера на покупку и сравниваем с ордерами на продажу.
+    Функция ищет релевантные предложения, где цена в ордере на продажу с одной биржи больше цены ордера на покупку
+    с другой биржи и соединяет такие совпадения в массив словарей:
+    [{order_buy: [биржа, ссылка, цена], orders_sell: [биржа, ссылка, цена], [биржа, ссылка, цена], [биржа, ссылка, цена]},
+    {order_buy: [биржа, ссылка, цена], orders_sell: [биржа, ссылка, цена], [биржа, ссылка, цена], [биржа, ссылка, цена]}]
+
+    Получаем:
+    Получаем список с ордерами на покупку и продажу со всех бирж, примерно такое:
+    [[[{биржа1, ордер на продажу}, {биржа1, ордер на продажу}], [{биржа1, ордер на покупку, ордера на покупку}]],
+    [[{биржа2, ордер на продажу}, {биржа2, ордер на продажу}], [{биржа2, ордер на покупку, ордера на покупку}]]
+
+    Пример:
+    [
+     [
+      [
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.6, 'quantity': 0.772},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.7, 'quantity': 0.001},
+      ],
+      [
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.5, 'quantity': 24.364},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.4, 'quantity': 0.074},
+      ]
+     ],
+     [
+      [
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.47, 'quantity': 4.574974},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.63, 'quantity': 4.416018},
+      ],
+      [
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.46, 'quantity': 1.6985},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.45, 'quantity': 4.492647},
+      ]
+     ]
+    ]
 
     Принцип работы.
-    Запрашиваем со всех бирж все ордера на покупку и все ордера на продажу.
-    Затем в отношении каждой пары бирж (например, биржа 1 и биржа 2), берем каждый ордер на покупку с биржи 1 и берем все ордера на продажу с биржи 2
-    Сравниваем, если цена из ордера на продажу больше цены из ордера на покупку (т.е. кто-то готов купить за 100usd, а кто-то готов продать за 95usd, то тогда эту пару вносит в финальный список order_sell_and_orders_by
+    Получаем список с ордерами со всех бирж.
+    В отношении каждой пары бирж (например, биржа 1 и биржа 2), берем каждый ордер на покупку с биржи 1 и берем
+    все ордера на продажу с биржи 2
+    Сравниваем, если цена из ордера на продажу больше цены из ордера на покупку (т.е. кто-то готов купить за 100usd,
+    а кто-то готов продать за 95usd, то тогда эту пару вносит в финальный список order_sell_and_orders_by.
 
-    Возвращает словарь с order_sell (ордер на покупку) и order_buy (список ордеров на продажу), которые по стоимости ниже ордера на покупку
+    Возвращает словарь с order_sell (ордер на покупку) и orders_buy (список ордеров на продажу), которые по стоимости
+    ниже ордера на покупку. Т.е. возвращаем отфильтрованные ордеры.
+    Пример возврата:
+    [
+     {'order_buy': ['mexc', 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'btc_usdt', 28832.78, 4.81299],
+      'orders_sell': [
+       ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28805.0, 10.641],
+       ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28805.8, 0.033],
+       ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28806.0, 0.014]
+      ]
+     },
+     {'order_buy': ['mexc', 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'btc_usdt', 28832.77, 0.723388],
+      'orders_sell': [
+       ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28805.0, 10.641],
+       ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28805.8, 0.033],
+       ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28806.0, 0.014],
+      ]
+     }
+    ]
     """
     liet_orders_buy_with_orders_sell = []  # список, одер о готовности купить и к нему ордера о готовности продать
 
@@ -59,11 +110,14 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell:dict) -> dict:
     Например:
     ['mexc', 'https://www.mexc.com/ru-RU/exchange/BTC_USDT', 'btc_usdt', '27011.11', '3.5616',
         [['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.1', 45.494],
-        ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.3', 0.3]]
+         ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.3', 0.3]
+        ]
     )
     Считаем маржу в процентах и долларах и отсеиваем лишние ордера
     Принцип работы:
-    берем необходимое количество монет из ордера на продажу и берем столько ордеров на продажу, что бы перекрывало потребность, остальные ордера отсеиываем
+    берем необходимое количество монет из ордера на продажу и берем столько ордеров на продажу, что бы перекрывало потребность,
+    остальные ордера отсеиываем.
+
     Считаем маржу в процентах и в долларах
     :return: Возвращаем
     """
@@ -74,7 +128,6 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell:dict) -> dict:
 
     presumably_spent = 0  # предположительно потратили
     presumably_bought = 0  # предположительно куплено монет
-
 
     order_buy = order_buy_and_orders_sell['order_buy']  # ордер на покупку
     dict_with_result['order_buy'] = order_buy
@@ -116,20 +169,149 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell:dict) -> dict:
     return dict_with_result
 
 
-def get_orders_from_exchanges(currency:str) -> list:
+def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, name_exchange_2: str, coin: str) -> list:
     """
-    :param currency: Принимает валюту
-    Запрашивает ордера на покупку и продажу с бирж
-    Сравнивает ордера на покупку и продажу, оставляет только те, которые выгодны
-    Считает маржу в процентах и долларах и отсеивает лишние ордера
-    Возвращает список словарей, где один словарь это один ордер на покупку и относящиеся к нему ордера на продажу
+    Получаем
+    1) словарь следующего вида (dict_with_networks):
+    {'last_update': datetime.datetime(2023, 6, 21, 16, 8, 47, 390196),
+    'bybit': {'BTC':
+                 {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
+                 'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
+                 'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
+             'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
+             'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
+    'mexc': {'BTC':
+             {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
+             'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
+             'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
+         'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
+         'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
+    }
+    2) Биржа 1
+    3) Биржа 2
+    4) Название валюты
+
+    Ищем совпадения валют в словаре с биржами. Возвращаем список с совпадениями валют.
+
+    Пример возврата:
+    """
+    coin = coin.upper()
+    name_exchange_1 = name_exchange_1.lower()
+    name_exchange_2 = name_exchange_2.lower()
+
+    # сети биржи 1
+    networks_on_exchange_1 = {}
+    if name_exchange_1 in dict_with_networks:
+        if coin in dict_with_networks[name_exchange_1]:
+            networks_on_exchange_1 = dict_with_networks[name_exchange_1][coin]
+
+    # сети той биржи, на которой надо продать
+    networks_on_exchange_2 = {}
+    if name_exchange_2 in dict_with_networks:
+        if coin in dict_with_networks[name_exchange_2]:
+            networks_on_exchange_2 = dict_with_networks[name_exchange_2][coin]
+
+    #  ищем совпадения по сетям и подбираем самую выгодную
+    list_networks_matches = []  # список совпадающих сетей
+    selected_network = {'network_name': '', 'fee': 0}  # выбранная сеть
+    for network in networks_on_exchange_1:
+        if network in networks_on_exchange_2:
+            # комиссия в сети с первой биржи
+            fee_network_from_exchange_1 = float(networks_on_exchange_1[network]['fee'])
+            # комиссия в ети во второй бирже
+            fee_network_from_exchange_2 = float(networks_on_exchange_2[network]['fee'])
+            # выбираем самую большую комиссию
+            fee_network = max(fee_network_from_exchange_1, fee_network_from_exchange_2)
+            list_networks_matches.append({'network_name': network, 'fee': fee_network})
+
+    return list_networks_matches
+
+
+def data_processing(list_all_list_from_all_stock_market: list, dict_with_networks: dict) -> list:
+    """
+    Функция обрабатывает "сырые данные". Мы получаем массив с ордерами на продажу и покупку валюты с разных бирж и
+    функция обрабатывает этот массив.
+
+    Принимает:
+    Получаем список с ордерами на покупку и продажу со всех бирж, примерно такое:
+    [[[{биржа1, ордер на продажу}, {биржа1, ордер на продажу}], [{биржа1, ордер на покупку, ордера на покупку}]],
+    [[{биржа2, ордер на продажу}, {биржа2, ордер на продажу}], [{биржа2, ордер на покупку, ордера на покупку}]]
+
+    Пример того, что получаем:
+    [
+     [
+      [
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.6, 'quantity': 0.772},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.7, 'quantity': 0.001},
+      ],
+      [
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.5, 'quantity': 24.364},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.4, 'quantity': 0.074},
+      ]
+     ],
+     [
+      [
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.47, 'quantity': 4.574974},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.63, 'quantity': 4.416018},
+      ],
+      [
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.46, 'quantity': 1.6985},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.45, 'quantity': 4.492647},
+      ]
+     ]
+    ]
+
+    Принцип работы:
+    Функция принимает сырые данные, ищет релевантные предложения, где цена в ордере на продажу с одной биржи больше цены
+    ордера на покупку с другой биржи и соединяет такие совпадения в массив словарей, далее считает маржу и прочие
+    необходимые данные и возвращает массив с релевантными предложениями.
+
+    Возвращает список словарей:
+    [
+     {'order_buy':
+        ['mexc', 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'btc_usdt', 28927.99, 8.866581],
+     'orders_sell': [
+        ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28914.8, 7.267],
+        ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28915.0, 0.001],
+        ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28915.5, 1.5985809999999994]],
+      'need_spent': 256376.53550549998,
+      'need_bought': 8.866581,
+      'margin': 0.05,
+      'margin_in_dol': 115.83},
+
+      {'order_buy':
+         ['mexc', 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'btc_usdt', 28927.94, 5.182642],
+      'orders_sell': [
+         ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28914.8, 5.182642]],
+      'need_spent': 149855.0569016,
+      'need_bought': 5.182642,
+      'margin': 0.05,
+      'margin_in_dol': 68.1},
+
+      {'order_buy':
+         ['mexc', 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'btc_usdt', 28927.9, 3.883489],
+      'orders_sell': [
+         ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 28914.8, 3.883489]],
+      'need_spent': 112290.3077372,
+      'need_bought': 3.883489,
+      'margin': 0.05,
+      'margin_in_dol': 50.87}
+    ]
     """
     list_of_orders = []  # список словарей, где один словарь это один ордер на покупку и относящиеся к нему ордера на продажу
 
-    list_all_list_from_all_stock_market = all_list_from_all_stock_market(currency)  # получаем все значения со всех бирж в отношении выбранной валюты
-    orders_sell_and_orders_by = _searching_currency_differences(list_all_list_from_all_stock_market)  # сравниваем все ордеры на покупку со всеми ордерами на продажу
-    for order_sell_and_orders_by in orders_sell_and_orders_by: # в отношении каждоого ордера на покупку и относящихся к нему ордеров на продажу
-        dict_with_result = _calculate_margin_filter_order(order_sell_and_orders_by)  # считаем маржу в процентах и долларах и отсеиваем лишние ордера
-        list_of_orders.append(dict_with_result)  # добавляем в список ордеров
+    # # получаем все значения со всех бирж в отношении выбранной валюты
+    # list_all_list_from_all_stock_market = all_list_from_all_stock_market(currency)
+
+    # сравниваем все ордеры на покупку со всеми ордерами на продажу. Формируем список словарей, где один словарь
+    # это один ордер на покупку и относящиеся к нему ордера на продажу
+    orders_sell_and_orders_by = _searching_currency_differences(list_all_list_from_all_stock_market)
+
+    # в отношении каждого ордера на покупку и относящихся к нему ордеров на продажу
+    for order_sell_and_orders_by in orders_sell_and_orders_by:
+        # считаем маржу в процентах и долларах и отсеиваем лишние ордера
+        dict_with_result = _calculate_margin_filter_order(order_sell_and_orders_by)
+        # добавляем в список ордеров
+        list_of_orders.append(dict_with_result)
 
     return list_of_orders

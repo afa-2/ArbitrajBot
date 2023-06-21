@@ -448,9 +448,39 @@ def all_list_from_all_stock_market(currency: str) -> list:
     """
     Функция принимает валюту,
     затем вызывает все функции для получения данных со всех бирж поочереди в отношении этой валюты
-    затем добавляет все полученные массивы в один единый масив, и возвращает его.
+    затем добавляет все полученные массивы в один единый массив, и возвращает его.
     :param currency: валюта
-    :return: Возвращает примерно такое: [[ордера на продажу, ордера на покупку], [оредра на продажу, ордера на покупку]]
+    :return: Возвращает примерно такое:
+    [[[{биржа1, ордер на продажу}, {биржа1, ордер на продажу}], [{биржа1, ордер на покупку, ордера на покупку}]],
+    [[{биржа2, ордер на продажу}, {биржа2, ордер на продажу}], [{биржа2, ордер на покупку, ордера на покупку}]]
+
+    Пример возврата:
+    [
+     [
+      [
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.6, 'quantity': 0.772},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.7, 'quantity': 0.001},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.8, 'quantity': 0.001}, }
+      ],
+      [
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.5, 'quantity': 24.364},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28893.4, 'quantity': 0.074},
+       {'stock_market': 'bybit', 'link_currency_pair': 'https://www.bybit.com/ru-RU/trade/spot/btc/USDT', 'symbol': 'BTCUSDT', 'price': 28892.9, 'quantity': 0.447}
+      ]
+     ],
+     [
+      [
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.47, 'quantity': 4.574974},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.63, 'quantity': 4.416018},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.66, 'quantity': 2.384561}
+      ],
+      [
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.46, 'quantity': 1.6985},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.45, 'quantity': 4.492647},
+       {'stock_market': 'mexc', 'link_currency_pair': 'https://www.mexc.com/ru-RU/exchange/btc_USDT', 'symbol': 'btc_usdt', 'price': 28914.41, 'quantity': 2.972827}
+      ]
+     ]
+    ]
     """
     all_list_from_all_stock_market = []
 
