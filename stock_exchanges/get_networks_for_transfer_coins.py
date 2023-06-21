@@ -559,7 +559,6 @@ def get_networks_for_transfer_coins(dict_with_keys:dict, coins:list) -> dict:
         text = f'При выполнении функции "get_networks_for_transfer_coins" произошла ошибка: {e}'
         logging.error(text)
 
-    print(dict_with_networks)
     return dict_with_networks
 
 
