@@ -145,7 +145,7 @@ def main_script(first_message):
                             # 1. в настройках указано, что надо публиковать в том числе, если сетей нет
                             # 2. в настройках указано, что надо публиковать только если есть сети и сети есть
                             if publish_without_networks == True \
-                                    or (publish_without_networks == False and len(order['matching_networks'] > 0)):
+                                    or (publish_without_networks == False and len(order['matching_networks']) > 0):
 
                                 # формируем спсок из всех ордеров на проаджу
                                 text_orders_sell = ''
