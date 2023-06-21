@@ -168,9 +168,11 @@ def main_script(first_message):
                                           f"📊 Спред: {profit}%\n" \
                                           f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
                                           f"Для проверки:\n\n" \
-                                          f"Все совпадающие сети: {order['matching_networks']}\n" \
-                                          f"Самая выгодная сеть: {order['network_with_min_fee']}"
-
+                                          f"Все совпадающие сети кол-во {len(order['matching_networks'])}\n" \
+                                          f"Список совпадающих сетей: {order['matching_networks']}\n" \
+                                          f"Самая выгодная сеть: {order['network_with_min_fee']}\n" \
+                                          f"Сети биржи 1: {dict_with_networks[name_exchange_where_buy][currency]}\n" \
+                                          f"Сети биржи 2: {dict_with_networks[name_exchange_where_sell][currency]}\n"
 
                                 _send_message(bot, chats_list, message)
 
