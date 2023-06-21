@@ -121,7 +121,7 @@ def main_script(first_message):
                 # обрабатываем сырые данные, находим выгодные предложения, считаем маржу,
                 # формируем массив с релевантными данными
                 all_orders = data_processing(all_orders_from_all_exchanges, dict_with_networks)
-                print(all_orders)
+
                 if len(all_orders) > 0:  # если ордеров больше 0
                     previous_message = ''
                     for order in all_orders:  # в отношении каждого ордера
@@ -145,7 +145,7 @@ def main_script(first_message):
                             # 1. в настройках указано, что надо публиковать в том числе, если сетей нет
                             # 2. в настройках указано, что надо публиковать только если есть сети и сети есть
                             if publish_without_networks == True \
-                                    or publish_without_networks == False and len(order['matching_networks'] > 0):
+                                    or (publish_without_networks == False and len(order['matching_networks'] > 0)):
 
                                 # формируем спсок из всех ордеров на проаджу
                                 text_orders_sell = ''
@@ -169,7 +169,7 @@ def main_script(first_message):
                                           f"📊 Спред: {profit}%\n" \
                                           f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
                                           f"Для проверки:\n\n" \
-                                          f"Все совпадающие сети: {order['matching_networks']}" \
+                                          f"Все совпадающие сети: {order['matching_networks']}\n" \
                                           f"Самая выгодная сеть: {order['network_with_min_fee']}"
 
                                 if message != previous_message:  # если сообщение не равно предыдущему
