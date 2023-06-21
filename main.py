@@ -6,7 +6,6 @@ import datetime
 from stock_exchanges.get_orders_from_exchanges import all_list_from_all_stock_market
 from stock_exchanges.working_with_data import data_processing
 from stock_exchanges.get_networks_for_transfer_coins import get_networks_for_transfer_coins
-from exp import dict_with_networks_bla
 
 
 def _send_message(bot, chats_list, message):
