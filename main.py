@@ -6,6 +6,7 @@ import datetime
 from stock_exchanges.get_orders_from_exchanges import all_list_from_all_stock_market
 from stock_exchanges.working_with_data import data_processing
 from stock_exchanges.get_networks_for_transfer_coins import get_networks_for_transfer_coins
+from exp import dict_with_networks_bla
 
 
 def _send_message(bot, chats_list, message):
@@ -52,6 +53,7 @@ def main_script(first_message):
         max_invest_conf = float(config.get('settings', 'max_invest').strip())
 
         update_networks = float(config.get('settings', 'update_networks').strip())  # время обновления сетей
+        publish_without_networks = bool(config.get('settings', 'publish_without_networks').strip())  # публиковать предложения, если нет совпадения по сетям
 
         # валюты
         currencies = config.get('settings', 'currencies').strip()
@@ -102,15 +104,16 @@ def main_script(first_message):
             last_update_plus = last_update + datetime.timedelta(hours=update_networks)  # прибавляем часы из настройки
             now = datetime.datetime.now()  # узнаем сколько сейчас времени
 
-            if now > last_update_plus:  # проверяем прошли ли с последнего обновления указанное кол-во часов
-                start_time_update_networks = time.time()  # Засекаем время начала обновления сетей
-                _send_message(bot, chats_list, "Обновление сетей")
-                dict_with_networks = get_networks_for_transfer_coins(dict_with_keys, currencies)
-                end_time_update_networks = time.time()  # Засекаем время окончания выполнения кода
-                time_update_networks = end_time_update_networks - start_time_update_networks  # Вычисляем затраченное время
-                _send_message(bot, chats_list, 'Сети обновлены')
-                text = f'Сети обновлены. На это ушло {time_update_networks} секунд'
-                logging.info(text)
+            dict_with_networks = dict_with_networks_bla  # !!!!!!!Временно!!!!!!!!
+            # if now > last_update_plus:  # проверяем прошли ли с последнего обновления указанное кол-во часов
+            #     start_time_update_networks = time.time()  # Засекаем время начала обновления сетей
+            #     _send_message(bot, chats_list, "Обновление сетей")
+            #     dict_with_networks = get_networks_for_transfer_coins(dict_with_keys, currencies)
+            #     end_time_update_networks = time.time()  # Засекаем время окончания выполнения кода
+            #     time_update_networks = end_time_update_networks - start_time_update_networks  # Вычисляем затраченное время
+            #     _send_message(bot, chats_list, 'Сети обновлены')
+            #     text = f'Сети обновлены. На это ушло {time_update_networks} секунд'
+            #     logging.info(text)
 
             # работа с ордерами
             start_time = time.time()  # Засекаем время начала выполнения кода
@@ -120,7 +123,7 @@ def main_script(first_message):
                 # обрабатываем сырые данные, находим выгодные предложения, считаем маржу,
                 # формируем массив с релевантными данными
                 all_orders = data_processing(all_orders_from_all_exchanges, dict_with_networks)
-
+                print(all_orders)
                 if len(all_orders) > 0:  # если ордеров больше 0
                     previous_message = ''
                     for order in all_orders:  # в отношении каждого ордера
@@ -135,74 +138,45 @@ def main_script(first_message):
                         name_exchange_where_buy = orders_sell[0][0]  # название биржи, где надо покупать монеты
                         name_exchange_where_sell = order_buy[0]  #  название биржи, где надо продавать монеты
 
-                        # сети
-                        # сети той биржи, на которой надо купить
-                        networks_on_exchanges_where_need_buy = {}
-                        if name_exchange_where_buy in dict_with_networks:
-                            if currency in dict_with_networks[name_exchange_where_buy]:
-                                networks_on_exchanges_where_need_buy = dict_with_networks[name_exchange_where_buy][currency]
-
-                        # сети той биржи, на которой надо продать
-                        networks_on_exchanges_where_need_sell = {}
-                        if name_exchange_where_sell in dict_with_networks:
-                            if currency in dict_with_networks[name_exchange_where_sell]:
-                                networks_on_exchanges_where_need_sell = dict_with_networks[name_exchange_where_sell][currency]
-
-                        #  ищем совпадения по сетям и подбираем самую выгодную
-                        list_networks_matches = []  # список совпадающих сетей
-                        selected_network = {'network_name': '', 'fee': 0}  # выбранная сеть
-                        for network in networks_on_exchanges_where_need_buy:
-                            if network in networks_on_exchanges_where_need_sell:
-                                # комиссия в сети с первой биржи
-                                fee_network_from_exchange_1 = float(networks_on_exchanges_where_need_buy[network])
-                                # комиссия в ети во второй бирже
-                                fee_network_from_exchange_2 = float(networks_on_exchanges_where_need_sell[network])
-                                # выбираем самую большую комиссию
-                                fee_network = max(fee_network_from_exchange_1, fee_network_from_exchange_2)
-
-                                if selected_network['network_name'] == '':  # если ранее не заносили данные
-                                    selected_network['network_name'] = network
-                                    selected_network['fee'] = fee_network
-                                else:  # если данные заносились, определяем, у какой сети процент меньше
-                                    if fee_network < selected_network['fee']:  # если у новой сети комиссия меньше
-                                        selected_network['network_name'] = network
-                                        selected_network['fee'] = fee_network
-
                         # если профит больше минимального и надо потратить меньше максимального
                         if max_profit_from_conf >= profit >= min_profit_from_conf \
                                 and max_invest_conf >= need_spent >= min_invest_conf \
                                 and profit_in_dol >= min_profit_usd_from_conf:
 
-                            # формируем спсок из всех ордеров на проаджу
-                            text_orders_sell = ''
-                            for order_sell in orders_sell:  # в отношении каждого ордера на продажу
-                                string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
-                                text_orders_sell += string
+                            # публикумем сообщение в телеграмм только в том слаче, если:
+                            # 1. в настройках указано, что надо публиковать в том числе, если сетей нет
+                            # 2. в настройках указано, что надо публиковать только если есть сети и сети есть
+                            if publish_without_networks == True \
+                                    or publish_without_networks == False and len(order['matching_networks'] > 0):
 
-                            # формируем сообщение
-                            message = f"Пара: <b>{currency}/USDT</b>\n\n" \
-                                      f"" \
-                                      f"✅Покупка: <b><a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a></b>\n\n" \
-                                      f"" \
-                                      f"Выкупить объем: <b>{round(need_bought, 4)} {currency}</b>\n" \
-                                      f"{text_orders_sell}" \
-                                      f"Потратив <b>{round(need_spent, 2)} USDT</b>\n\n" \
-                                      f"" \
-                                      f"🔻Продажа: <b><a href='{name_exchange_where_sell}'>{order_buy[0]}</a></b>\n" \
-                                      f"Продать: {order_buy[4]} {currency}\n" \
-                                      f"По цене: {order_buy[3]} USDT\n\n" \
-                                      f"" \
-                                      f"📊 Спред: {profit}%\n" \
-                                      f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
-                                      f"Для проверки, найденные сети:\n\n" \
-                                      f"{name_exchange_where_buy}: " \
-                                      f"{networks_on_exchanges_where_need_buy}\n" \
-                                      f"{name_exchange_where_sell}: " \
-                                      f"{networks_on_exchanges_where_need_sell}\n"
+                                # формируем спсок из всех ордеров на проаджу
+                                text_orders_sell = ''
+                                for order_sell in orders_sell:  # в отношении каждого ордера на продажу
+                                    string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
+                                    text_orders_sell += string
 
-                            if message != previous_message:  # если сообщение не равно предыдущему
-                                _send_message(bot, chats_list, message)
-                            previous_message = message  # сохраняем сообщение как предудщее, для проверки, что бы они не повторялись
+                                # формируем сообщение
+                                message = f"Пара: <b>{currency}/USDT</b>\n\n" \
+                                          f"" \
+                                          f"✅Покупка: <b><a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a></b>\n\n" \
+                                          f"" \
+                                          f"Выкупить объем: <b>{round(need_bought, 4)} {currency}</b>\n" \
+                                          f"{text_orders_sell}" \
+                                          f"Потратив <b>{round(need_spent, 2)} USDT</b>\n\n" \
+                                          f"" \
+                                          f"🔻Продажа: <b><a href='{name_exchange_where_sell}'>{order_buy[0]}</a></b>\n" \
+                                          f"Продать: {order_buy[4]} {currency}\n" \
+                                          f"По цене: {order_buy[3]} USDT\n\n" \
+                                          f"" \
+                                          f"📊 Спред: {profit}%\n" \
+                                          f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
+                                          f"Для проверки:\n\n" \
+                                          f"Все совпадающие сети: {order['matching_networks']}" \
+                                          f"Самая выгодная сеть: {order['network_with_min_fee']}"
+
+                                if message != previous_message:  # если сообщение не равно предыдущему
+                                    _send_message(bot, chats_list, message)
+                                previous_message = message  # сохраняем сообщение как предудщее, для проверки, что бы они не повторялись
 
             end_time = time.time()  # Засекаем время окончания выполнения кода
             elapsed_time = end_time - start_time  # Вычисляем затраченное время

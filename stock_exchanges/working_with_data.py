@@ -104,69 +104,22 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
     return liet_orders_buy_with_orders_sell
 
 
-def _calculate_margin_filter_order(order_buy_and_orders_sell:dict) -> dict:
+def return_networks_for_exchange_and_coin(dict_with_networks: dict, name_exchange: str, coin: str):
     """
-    Получаем ордер на покупку и список ордеров на продажу (
-    Например:
-    ['mexc', 'https://www.mexc.com/ru-RU/exchange/BTC_USDT', 'btc_usdt', '27011.11', '3.5616',
-        [['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.1', 45.494],
-         ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.3', 0.3]
-        ]
-    )
-    Считаем маржу в процентах и долларах и отсеиваем лишние ордера
-    Принцип работы:
-    берем необходимое количество монет из ордера на продажу и берем столько ордеров на продажу, что бы перекрывало потребность,
-    остальные ордера отсеиываем.
+    Функция принимает словарь с сетями, название биржи и название монеты. Находит в словаре сети, отнсящиеся к этой
+    бирже и к этой монете и возвращает.
 
-    Считаем маржу в процентах и в долларах
-    :return: Возвращаем
+    Пример возврата:
+    {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
+     'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
+     'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}}
     """
+    networks = {}
+    if name_exchange in dict_with_networks:
+        if coin in dict_with_networks[name_exchange]:
+            networks = dict_with_networks[name_exchange][coin].copy()
 
-    dict_with_result = {}
-    dict_with_result['order_buy'] = []
-    dict_with_result['orders_sell'] = []
-
-    presumably_spent = 0  # предположительно потратили
-    presumably_bought = 0  # предположительно куплено монет
-
-    order_buy = order_buy_and_orders_sell['order_buy']  # ордер на покупку
-    dict_with_result['order_buy'] = order_buy
-    price_order_buy = float(order_buy[3])  # цена одной монеты в ордере на покупку
-    quantity_order_buy = float(order_buy[4])  # количество монет в ордере на покупку
-
-    orders_sell = order_buy_and_orders_sell['orders_sell']  # ордера на продажу
-
-    for order_sell in orders_sell:  # в отношении каждого ордера на продажу
-        price_order_sell = float(order_sell[2])  # цена одной монеты в ордере на продажу
-        quantity_order_sell = float(order_sell[3])  # количество монет в ордере на продажу
-
-        if presumably_bought + quantity_order_sell <= quantity_order_buy:  # если предположительно куплено монет + количество монет в ордере на продажу меньше или равно количеству монет в ордере на покупку
-            presumably_bought += quantity_order_sell  # прибавляем к предположительно купленным монетам количество монет в ордере на продажу
-            presumably_spent += quantity_order_sell * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет в ордере на продажу умноженное на цену ордера на продажу
-            dict_with_result['orders_sell'].append(order_sell)  # добавляем ордер на продажу в список
-
-        else:  # если предположительно куплено монет + количество монет в ордере на продажу больше чем количество монет в ордере на покупку
-            we_need = quantity_order_buy - presumably_bought  # вычисляем сколько нам нужно монет, что бы перекрыть потребность
-            presumably_bought += we_need  # прибавляем к предположительно купленным монетам количество монет, которое нам нужно
-            presumably_spent += we_need * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет, которое нам нужно умноженное на цену ордера на продажу
-            order_sell[3] = we_need  # меняем количество монет в ордере на продажу на количество монет, которое нам нужно
-            dict_with_result['orders_sell'].append(order_sell)  # добавляем ордер на продажу в список
-            break  # выходим из цикла
-
-    # считаем маржу в долларах
-    margin_in_dol = (presumably_bought * price_order_buy) - presumably_spent
-    margin_in_dol = round(margin_in_dol, 2)
-
-    # считаем маржу в процентах
-    margin = margin_in_dol/presumably_spent * 100
-    margin = round(margin, 2)
-
-    dict_with_result['need_spent'] = presumably_spent  # надо потратить
-    dict_with_result['need_bought'] = presumably_bought  # надо купить
-    dict_with_result['margin'] = margin
-    dict_with_result['margin_in_dol'] = margin_in_dol
-
-    return dict_with_result
+    return networks
 
 
 def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, name_exchange_2: str, coin: str) -> list:
@@ -194,22 +147,16 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
     Ищем совпадения валют в словаре с биржами. Возвращаем список с совпадениями валют.
 
     Пример возврата:
+    [{'network_name': 'BTC', 'fee': 0.0005}]
     """
     coin = coin.upper()
     name_exchange_1 = name_exchange_1.lower()
     name_exchange_2 = name_exchange_2.lower()
 
     # сети биржи 1
-    networks_on_exchange_1 = {}
-    if name_exchange_1 in dict_with_networks:
-        if coin in dict_with_networks[name_exchange_1]:
-            networks_on_exchange_1 = dict_with_networks[name_exchange_1][coin]
-
-    # сети той биржи, на которой надо продать
-    networks_on_exchange_2 = {}
-    if name_exchange_2 in dict_with_networks:
-        if coin in dict_with_networks[name_exchange_2]:
-            networks_on_exchange_2 = dict_with_networks[name_exchange_2][coin]
+    networks_on_exchange_1 = return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_1, coin)
+    # сети с биржи 2
+    networks_on_exchange_2 = return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_2, coin)
 
     #  ищем совпадения по сетям и подбираем самую выгодную
     list_networks_matches = []  # список совпадающих сетей
@@ -225,6 +172,104 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
             list_networks_matches.append({'network_name': network, 'fee': fee_network})
 
     return list_networks_matches
+
+
+def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_networks: dict) -> dict:
+    """
+    Получаем ордер на покупку и список ордеров на продажу (
+    Например:
+    ['mexc', 'https://www.mexc.com/ru-RU/exchange/BTC_USDT', 'btc_usdt', '27011.11', '3.5616',
+        [['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.1', 45.494],
+         ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.3', 0.3]
+        ]
+    )
+    Считаем маржу в процентах и долларах и отсеиваем лишние ордера
+    Принцип работы:
+    берем необходимое количество монет из ордера на продажу и берем столько ордеров на продажу, что бы перекрывало потребность,
+    остальные ордера отсеиываем.
+
+    Считаем маржу в процентах и в долларах
+    :return: Возвращаем
+    """
+    dict_with_result = {}
+    dict_with_result['order_buy'] = []
+    dict_with_result['orders_sell'] = []
+
+    presumably_spent = 0  # предположительно потратили
+    presumably_bought = 0  # предположительно куплено монет
+
+    order_buy = order_buy_and_orders_sell['order_buy']  # ордер на покупку
+    dict_with_result['order_buy'] = order_buy
+    name_exchange_where_buy = order_buy[0]  # название биржи, на которой надо купить
+    name_coin = order_buy[2]  # название монеты
+    name_coin = name_coin.upper()  # переводим в верхний регистр
+    name_coin = name_coin.replace('_USDT', '')  # убираем нижнее подчеркивание и usdt
+
+    price_order_buy = float(order_buy[3])  # цена одной монеты в ордере на покупку
+    quantity_order_buy = float(order_buy[4])  # количество монет в ордере на покупку
+
+    orders_sell = order_buy_and_orders_sell['orders_sell']  # ордера на продажу
+    name_exchange_where_sell = orders_sell[0][0]  # название биржи, на которой надо продать
+
+    # считаем сколько нам надо ордеров на продажу, что бы покрыть потребности в ордере на покупку, остальное отсеиваем
+    for order_sell in orders_sell:  # в отношении каждого ордера на продажу
+        price_order_sell = float(order_sell[2])  # цена одной монеты в ордере на продажу
+        quantity_order_sell = float(order_sell[3])  # количество монет в ордере на продажу
+
+        if presumably_bought + quantity_order_sell <= quantity_order_buy:  # если предположительно куплено монет + количество монет в ордере на продажу меньше или равно количеству монет в ордере на покупку
+            presumably_bought += quantity_order_sell  # прибавляем к предположительно купленным монетам количество монет в ордере на продажу
+            presumably_spent += quantity_order_sell * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет в ордере на продажу умноженное на цену ордера на продажу
+            dict_with_result['orders_sell'].append(order_sell)  # добавляем ордер на продажу в список
+
+        else:  # если предположительно куплено монет + количество монет в ордере на продажу больше чем количество монет в ордере на покупку
+            we_need = quantity_order_buy - presumably_bought  # вычисляем сколько нам нужно монет, что бы перекрыть потребность
+            presumably_bought += we_need  # прибавляем к предположительно купленным монетам количество монет, которое нам нужно
+            presumably_spent += we_need * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет, которое нам нужно умноженное на цену ордера на продажу
+            order_sell[3] = we_need  # меняем количество монет в ордере на продажу на количество монет, которое нам нужно
+            dict_with_result['orders_sell'].append(order_sell)  # добавляем ордер на продажу в список
+            break  # выходим из цикла
+
+    # получаем совпадающие сети в обоих биржах
+    dict_with_result['matching_networks'] = []
+    list_with_matching_networks = _search_matching_networks(dict_with_networks, name_exchange_where_buy, name_exchange_where_sell, name_coin)
+    for matching_networks in list_with_matching_networks:
+        dict_with_result['matching_networks'].append(matching_networks.copy())
+    # выбираем сеть с самой низкой комиссией
+    if len(list_with_matching_networks) > 0:  # если в списке вообще что-нибудь есть
+        network_with_min_fee = min(list_with_matching_networks, key=lambda x: x['fee'])
+    else: # если в списке ничего нет
+        network_with_min_fee = {}
+
+    # если сеть есть, то заносим ее в словарь
+    if len(network_with_min_fee) > 0:
+        dict_with_result['network_with_min_fee'] = network_with_min_fee
+        network_fee = float(network_with_min_fee['fee'])
+    else:
+        dict_with_result['network_with_min_fee'] = {}
+        network_fee = 0
+
+    # комиссия сети в долларах. Курс - стоимость монеты в ордере на покупку
+    network_fee_in_dollars = network_fee * price_order_buy
+    dict_with_result['network_with_min_fee']['fee_in_dollars'] = network_fee_in_dollars
+
+    # прибавляем к предположительно потраченным деньгам комиссию сети умноженную на цену ордера покупки
+    presumably_spent += network_fee_in_dollars
+
+    # считаем маржу в долларах
+    # Маржа в долларах: (количество купленных монет * цена монеты в ордере на покупку) - количество потраченных денег
+    margin_in_dol = (presumably_bought * price_order_buy) - presumably_spent
+    margin_in_dol = round(margin_in_dol, 2)
+
+    # считаем маржу в процентах
+    margin = margin_in_dol/presumably_spent * 100
+    margin = round(margin, 2)
+
+    dict_with_result['need_spent'] = presumably_spent  # надо потратить
+    dict_with_result['need_bought'] = presumably_bought  # надо купить
+    dict_with_result['margin'] = margin
+    dict_with_result['margin_in_dol'] = margin_in_dol
+
+    return dict_with_result
 
 
 def data_processing(list_all_list_from_all_stock_market: list, dict_with_networks: dict) -> list:
@@ -300,9 +345,6 @@ def data_processing(list_all_list_from_all_stock_market: list, dict_with_network
     """
     list_of_orders = []  # список словарей, где один словарь это один ордер на покупку и относящиеся к нему ордера на продажу
 
-    # # получаем все значения со всех бирж в отношении выбранной валюты
-    # list_all_list_from_all_stock_market = all_list_from_all_stock_market(currency)
-
     # сравниваем все ордеры на покупку со всеми ордерами на продажу. Формируем список словарей, где один словарь
     # это один ордер на покупку и относящиеся к нему ордера на продажу
     orders_sell_and_orders_by = _searching_currency_differences(list_all_list_from_all_stock_market)
@@ -310,7 +352,7 @@ def data_processing(list_all_list_from_all_stock_market: list, dict_with_network
     # в отношении каждого ордера на покупку и относящихся к нему ордеров на продажу
     for order_sell_and_orders_by in orders_sell_and_orders_by:
         # считаем маржу в процентах и долларах и отсеиваем лишние ордера
-        dict_with_result = _calculate_margin_filter_order(order_sell_and_orders_by)
+        dict_with_result = _calculate_margin_filter_order(order_sell_and_orders_by, dict_with_networks)
         # добавляем в список ордеров
         list_of_orders.append(dict_with_result)
 
