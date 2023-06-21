@@ -104,16 +104,15 @@ def main_script(first_message):
             last_update_plus = last_update + datetime.timedelta(hours=update_networks)  # прибавляем часы из настройки
             now = datetime.datetime.now()  # узнаем сколько сейчас времени
 
-            dict_with_networks = dict_with_networks_bla  # !!!!!!!Временно!!!!!!!!
-            # if now > last_update_plus:  # проверяем прошли ли с последнего обновления указанное кол-во часов
-            #     start_time_update_networks = time.time()  # Засекаем время начала обновления сетей
-            #     _send_message(bot, chats_list, "Обновление сетей")
-            #     dict_with_networks = get_networks_for_transfer_coins(dict_with_keys, currencies)
-            #     end_time_update_networks = time.time()  # Засекаем время окончания выполнения кода
-            #     time_update_networks = end_time_update_networks - start_time_update_networks  # Вычисляем затраченное время
-            #     _send_message(bot, chats_list, 'Сети обновлены')
-            #     text = f'Сети обновлены. На это ушло {time_update_networks} секунд'
-            #     logging.info(text)
+            if now > last_update_plus:  # проверяем прошли ли с последнего обновления указанное кол-во часов
+                start_time_update_networks = time.time()  # Засекаем время начала обновления сетей
+                _send_message(bot, chats_list, "Обновление сетей")
+                dict_with_networks = get_networks_for_transfer_coins(dict_with_keys, currencies)
+                end_time_update_networks = time.time()  # Засекаем время окончания выполнения кода
+                time_update_networks = end_time_update_networks - start_time_update_networks  # Вычисляем затраченное время
+                _send_message(bot, chats_list, 'Сети обновлены')
+                text = f'Сети обновлены. На это ушло {time_update_networks} секунд'
+                logging.info(text)
 
             # работа с ордерами
             start_time = time.time()  # Засекаем время начала выполнения кода
