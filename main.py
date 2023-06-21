@@ -172,6 +172,8 @@ def main_script(first_message):
                                           f"Самая выгодная сеть: {order['network_with_min_fee']}"
 
 
+                                _send_message(bot, chats_list, message)
+
             end_time = time.time()  # Засекаем время окончания выполнения кода
             elapsed_time = end_time - start_time  # Вычисляем затраченное время
             elapsed_time = round(elapsed_time, 2)
