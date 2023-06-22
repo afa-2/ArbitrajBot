@@ -1,17 +1,28 @@
 import json
 
-def _send_message(bot, chats_list, message):
-    for chat in chats_list:
-        if len(chat) > 0:
-            bot.send_message(chat, message, parse_mode="HTML", disable_web_page_preview=True)
 
-
-def _save_networks_to_file(dict_with_networks):
+def _get_networks_from_file():
     file_path = 'networks.json'
-    with open(file_path, 'w') as f:
-        json.dump(dict_with_networks, f)
+    with open(file_path) as f:
+        dict_with_networks = json.load(f)
+    return dict_with_networks
 
 
-dict = {'one': 1, 'two': 2}
+dict_with_networks = _get_networks_from_file()
 
-_save_networks_to_file(dict)
+exchanges = ['bybit', 'mexc', 'kucoin', 'huobi', 'gate', 'bitget']
+
+exchange = 'bitget'
+
+dict_with_networks = dict_with_networks[exchange]
+
+list_with_networks = []
+for coin in dict_with_networks:
+    all_with_networks_for_this_coin = dict_with_networks[coin]
+    for row_networks in all_with_networks_for_this_coin:
+        for networks_name in row_networks['network_names']:
+            if networks_name not in list_with_networks:
+                list_with_networks.append(networks_name)
+
+for i in list_with_networks:
+    print(i)

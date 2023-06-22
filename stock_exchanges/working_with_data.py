@@ -292,6 +292,8 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
         network_fee = float(network_with_min_fee['fee'])
     else:
         dict_with_result['network_with_min_fee'] = {}
+        dict_with_result['network_with_min_fee']['network_names'] = ''
+        dict_with_result['network_with_min_fee']['fee'] = 0
         network_fee = 0
 
     # комиссия сети в долларах. Курс - стоимость монеты в ордере на покупку
