@@ -6,100 +6,100 @@ import hmac
 import logging
 
 
-def _get_networks_from_kucoin_one_coin(coin: str) -> list:
+
+def _get_networks_from_huobi_one_coin(coin: str) -> list:
     """
     Функция получает сети для одной монеты с биржи Kucoin
     :param coin: название монеты
 
-    При запросе с биржи Kucoin по указанному api получаем словаряь типа:
-    {'code': '200000', 'data':
-    {'currency': 'ETH', 'name': 'ETH', 'fullName': 'Ethereum', 'precision': 8, 'confirms': None, 'contractAddress': None, 'isMarginEnabled': True, 'isDebitEnabled': True,
-    'chains': [
-    {'chainName': 'OPTIMISM', 'chain': 'optimism', 'withdrawalMinSize': '0.01', 'withdrawalMinFee': '0.001', 'isWithdrawEnabled': False, 'isDepositEnabled': False, 'confirms': 100, 'contractAddress': ''},
-    {'chainName': 'ERC20', 'chain': 'eth', 'withdrawalMinSize': '0.01', 'withdrawalMinFee': '0.005', 'isWithdrawEnabled': True, 'isDepositEnabled': True, 'confirms': 64, 'contractAddress': ''}
-    ]}}
+    {'code': 200, 'data': [{'currency': 'eth', 'assetType': 1,
+    'chains': [{'chain': 'arbieth', 'displayName': 'ARBIETH', 'fullName': 'Arbitrum One', 'isDynamic': True, 'numOfConfirmations': 64, 'numOfFastConfirmations': 32, 'depositStatus': 'allowed', 'minDepositAmt': '0.005', 'withdrawStatus': 'prohibited', 'minWithdrawAmt': '0.005', 'withdrawPrecision': 8, 'maxWithdrawAmt': '80.000000000000000000', 'withdrawQuotaPerDay': '80.000000000000000000', 'withdrawQuotaPerYear': None, 'withdrawQuotaTotal': None, 'withdrawFeeType': 'fixed', 'transactFeeWithdraw': '0.00102', 'addrWithTag': False, 'addrDepositTag': False},
+               {'chain': 'btt2eth', 'displayName': 'BTT', 'fullName': '', 'baseChain': 'BTT', 'baseChainProtocol': 'BTTRC20', 'isDynamic': False, 'numOfConfirmations': 64, 'numOfFastConfirmations': 32, 'depositStatus': 'allowed', 'minDepositAmt': '0.0003', 'withdrawStatus': 'allowed', 'minWithdrawAmt': '0.0003', 'withdrawPrecision': 8, 'maxWithdrawAmt': '590.000000000000000000', 'withdrawQuotaPerDay': '590.000000000000000000', 'withdrawQuotaPerYear': None, 'withdrawQuotaTotal': None, 'withdrawFeeType': 'fixed', 'transactFeeWithdraw': '0.000036', 'addrWithTag': False, 'addrDepositTag': False}]}
     Где:
     chains - список сетей
-    chainName - название сети
     chain - название сети
-    withdrawalMinSize - минимальная сумма вывода
-    withdrawalMinFee - минимальная комиссия вывода
-    isWithdrawEnabled - возможность вывода
-    isDepositEnabled - возможность депозита
-    confirms - количество подтверждений
-    contractAddress - адрес контракта
+    displayName - название сети
+    minWithdrawAmt - минимальная сумма вывода
+    transactFeeWithdraw - минимальная комиссия вывода
+    withdrawStatus - возможность вывода
+    depositStatus - возможность депозита
+    numOfConfirmations - количество подтверждений
 
     Возвращает список с сетями вида:
-        [{'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.001, 'withdraw_min': 0.01},
-        {'network_names': ['ERC20', 'ETH'], 'fee': 0.005, 'withdraw_min': 0.01},
-        {'network_names': ['KCC', 'KCC'], 'fee': 0.0002, 'withdraw_min': 0.01},
-        {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
-        {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}]
+        [{'network_names': ['ARBIETH', 'ARBITRUM ONE'], 'fee': 0.00102, 'withdraw_min': 0.005},
+        {'network_names': ['BTT2ETH', 'BTT'], 'fee': 3.6e-05, 'withdraw_min': 0.0003},
+        {'network_names': ['CUBEETH'], 'fee': 9.49e-06, 'withdraw_min': 0.0005},
+        {'network_names': ['ETH', 'ETHEREUM'], 'fee': 0.0012, 'withdraw_min': 0.01},
+        {'network_names': ['HRC20ETH'], 'fee': 1.299e-05, 'withdraw_min': 0.05},
+        {'network_names': ['OPTETH'], 'fee': 0.001, 'withdraw_min': 0.005}]
     """
-    list_for_return = []  # словарь для возврата
+    list_for_return = []  # список для возврата
     response = ''
 
     try:
-        coin = coin.upper()
-        url = f'https://api.kucoin.com/api/v2/currencies/{coin}'
+        coin = coin.lower()
+        url = f'https://api.huobi.pro/v2/reference/currencies?currency={coin}'
         response = requests.get(url).json()
 
-        if response['code'] != '900003':
-            chains = response['data']['chains']
+        if len(response['data']) > 0:
+            chains = response['data'][0]['chains']
 
             for chain in chains:
-                dict_with_network_params = {}
+                dict_with_network_parameters = {}
                 # названия сети
-                dict_with_network_params['network_names'] = [str(chain['chainName']).upper(), str(chain['chain']).upper()]
+                dict_with_network_parameters['network_names'] = []
+                network_names = [chain['chain'], chain['displayName'], chain['fullName']]
+                for network_name in network_names:
+                    network_name = network_name.upper()
+                    if network_name != '' and network_name not in dict_with_network_parameters['network_names']:
+                        dict_with_network_parameters['network_names'].append(network_name)
+
                 # комиссия
-                fee = float(chain['withdrawalMinFee'])
-                dict_with_network_params['fee'] = fee
-                # минимальный вывод
-                withdraw_min = float(chain['withdrawalMinSize'])
-                dict_with_network_params['withdraw_min'] = withdraw_min
-                list_for_return.append(dict_with_network_params)
+                fee = float(chain['transactFeeWithdraw'])
+                dict_with_network_parameters['fee'] = fee
+                # размер минимального вывода
+                withdraw_min = float(chain['minWithdrawAmt'])
+                dict_with_network_parameters['withdraw_min'] = withdraw_min
+
+                list_for_return.append(dict_with_network_parameters)
 
     except Exception as e:
-        text = f'При выполнении функции "_get_networks_from_kucoin_one_coin" произошла ошибка: {e}, ' \
-               f'response: {response}'
+        text = f'При выполнении функции "_get_networks_from_huobi_one_coin" произошла ошибка: {e}, response: {response}'
         logging.error(text)
         time.sleep(30)
 
     return list_for_return
 
 
-def _get_networks_from_kucoin_many_coin(coins:list) -> dict:
+
+def _get_networks_from_huobi_many_coin(coins:list) -> dict:
     """
-    Функция получает список сетей для перевода монет с биржи и на биржу Kukoin в отношении всех переданных монет
+    Функция получает список сетей для перевода монет с биржи и на биржу Huobi в отношении всех переданных монет
     Возвращает словарь типа
-    {'ETH': [{'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.001, 'withdraw_min': 0.01},
-            {'network_names': ['ERC20', 'ETH'], 'fee': 0.005, 'withdraw_min': 0.01},
-            {'network_names': ['KCC', 'KCC'], 'fee': 0.0002, 'withdraw_min': 0.01},
-            {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
-            {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}],
-    'BTC': [{'network_names': ['BTC', 'BTC'], 'fee': 0.0005, 'withdraw_min': 0.0008},
-            {'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.0001, 'withdraw_min': 0.0005},
-            {'network_names': ['KCC', 'KCC'], 'fee': 2e-05, 'withdraw_min': 0.0008},
-            {'network_names': ['TRC20', 'TRX'], 'fee': 0.0001, 'withdraw_min': 0.0005},
-            {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.0001, 'withdraw_min': 0.0005},
-            {'network_names': ['BTC-SEGWIT', 'BECH32'], 'fee': 0.0005, 'withdraw_min': 0.0008}]}
+    {'ETH': [{'network_names': ['ARBIETH', 'ARBITRUM ONE'], 'fee': 0.00102, 'withdraw_min': 0.005},
+            {'network_names': ['BTT2ETH', 'BTT'], 'fee': 3.6e-05, 'withdraw_min': 0.0003},
+            {'network_names': ['CUBEETH'], 'fee': 9.49e-06, 'withdraw_min': 0.0005},
+            {'network_names': ['ETH', 'ETHEREUM'], 'fee': 0.0012, 'withdraw_min': 0.01},
+            {'network_names': ['HRC20ETH'], 'fee': 1.299e-05, 'withdraw_min': 0.05},
+            {'network_names': ['OPTETH'], 'fee': 0.001, 'withdraw_min': 0.005}],
+    'BTC': [{'network_names': ['BTC', 'BITCOIN'], 'fee': 0.001, 'withdraw_min': 0.001},
+            {'network_names': ['BTT2BTC', 'BTT'], 'fee': 1e-07, 'withdraw_min': 1.7e-05},
+            {'network_names': ['HBTC'], 'fee': 0.00018925, 'withdraw_min': 0.001},
+            {'network_names': ['HRC20BTC', 'HBTC'], 'fee': 1.11e-06, 'withdraw_min': 0.001},
+            {'network_names': ['TRC20BTC', 'TRX'], 'fee': 5e-05, 'withdraw_min': 0.001}]}
     """
+
     dict_with_networks = {}
 
     try:
         for coin in coins:
-            dict_with_networks[coin.upper()] = _get_networks_from_kucoin_one_coin(coin)
-            time.sleep(0)
+            dict_with_networks[coin.upper()] = _get_networks_from_huobi_one_coin(coin)
 
     except Exception as e:
-        text = f'При выполнении функции "_get_networks_from_kucoin_many_coin" произошла ошибка: {e}'
+        text = f'При выполнении функции "_get_networks_from_huobi_many_coin" произошла ошибка: {e}'
         logging.error(text)
 
     return dict_with_networks
-
-
-
-
 
 
 
@@ -115,7 +115,7 @@ dict_with_keys = {'bybit': {'api_key': 'V1IkiWjudAPBY7xsdc', 'secret_key': 'fLPt
                   'gate': {'api_key': '90323691e2d247ab1f7bccbf187e6567', 'secret_key': 'a4b8540fc1d95822f79dcf362103e0e253805dd693befb8c0193dddd65384fad'}}
 
 
-res = _get_networks_from_kucoin_many_coin(['eth', 'btc'])
+res = _get_networks_from_huobi_many_coin(['eth', 'btc'])
 
 print('-----------------------------------')
 print(res)

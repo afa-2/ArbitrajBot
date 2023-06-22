@@ -320,7 +320,7 @@ def _get_networks_from_kucoin_many_coin(coins:list) -> dict:
 
 
 # Биржа Huobi ---------------------------------------------------------------------------------------------------------
-def _get_networks_from_huobi_one_coin(coin: str) -> dict:
+def _get_networks_from_huobi_one_coin(coin: str) -> list:
     """
     Функция получает сети для одной монеты с биржи Kucoin
     :param coin: название монеты
@@ -338,13 +338,15 @@ def _get_networks_from_huobi_one_coin(coin: str) -> dict:
     depositStatus - возможность депозита
     numOfConfirmations - количество подтверждений
 
-    Возвращает словарь с сетями вида:
-    {
-    'OPTIMISM': {'fee': '0.0035', 'deposit_min': '0', 'withdraw_min': '0.0035', 'percentage_fee': '0'},
-    'ERC20': {'fee': '0.0003', 'deposit_min': '0', 'withdraw_min': '0.0003', 'percentage_fee': '0'}
-    }
+    Возвращает список с сетями вида:
+        [{'network_names': ['ARBIETH', 'ARBITRUM ONE'], 'fee': 0.00102, 'withdraw_min': 0.005},
+        {'network_names': ['BTT2ETH', 'BTT'], 'fee': 3.6e-05, 'withdraw_min': 0.0003},
+        {'network_names': ['CUBEETH'], 'fee': 9.49e-06, 'withdraw_min': 0.0005},
+        {'network_names': ['ETH', 'ETHEREUM'], 'fee': 0.0012, 'withdraw_min': 0.01},
+        {'network_names': ['HRC20ETH'], 'fee': 1.299e-05, 'withdraw_min': 0.05},
+        {'network_names': ['OPTETH'], 'fee': 0.001, 'withdraw_min': 0.005}]
     """
-    dict_for_return = {}  # словарь для возврата
+    list_for_return = []  # список для возврата
     response = ''
 
     try:
@@ -356,29 +358,47 @@ def _get_networks_from_huobi_one_coin(coin: str) -> dict:
             chains = response['data'][0]['chains']
 
             for chain in chains:
+                dict_with_network_parameters = {}
+                # названия сети
+                dict_with_network_parameters['network_names'] = []
+                network_names = [chain['chain'], chain['displayName'], chain['fullName']]
+                for network_name in network_names:
+                    network_name = network_name.upper()
+                    if network_name != '' and network_name not in dict_with_network_parameters['network_names']:
+                        dict_with_network_parameters['network_names'].append(network_name)
+
+                # комиссия
                 fee = float(chain['transactFeeWithdraw'])
+                dict_with_network_parameters['fee'] = fee
+                # размер минимального вывода
                 withdraw_min = float(chain['minWithdrawAmt'])
-                percentage_fee = 0
-                dict_for_return[chain['displayName']] = {'fee': fee,
-                                                       'withdraw_min': withdraw_min,
-                                                       'percentage_fee': percentage_fee}
+                dict_with_network_parameters['withdraw_min'] = withdraw_min
+
+                list_for_return.append(dict_with_network_parameters)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_huobi_one_coin" произошла ошибка: {e}, response: {response}'
         logging.error(text)
         time.sleep(30)
 
-    return dict_for_return
+    return list_for_return
 
 
 def _get_networks_from_huobi_many_coin(coins:list) -> dict:
     """
     Функция получает список сетей для перевода монет с биржи и на биржу Huobi в отношении всех переданных монет
     Возвращает словарь типа
-    {'ETH': {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-            'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-            'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
-     'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
+    {'ETH': [{'network_names': ['ARBIETH', 'ARBITRUM ONE'], 'fee': 0.00102, 'withdraw_min': 0.005},
+            {'network_names': ['BTT2ETH', 'BTT'], 'fee': 3.6e-05, 'withdraw_min': 0.0003},
+            {'network_names': ['CUBEETH'], 'fee': 9.49e-06, 'withdraw_min': 0.0005},
+            {'network_names': ['ETH', 'ETHEREUM'], 'fee': 0.0012, 'withdraw_min': 0.01},
+            {'network_names': ['HRC20ETH'], 'fee': 1.299e-05, 'withdraw_min': 0.05},
+            {'network_names': ['OPTETH'], 'fee': 0.001, 'withdraw_min': 0.005}],
+    'BTC': [{'network_names': ['BTC', 'BITCOIN'], 'fee': 0.001, 'withdraw_min': 0.001},
+            {'network_names': ['BTT2BTC', 'BTT'], 'fee': 1e-07, 'withdraw_min': 1.7e-05},
+            {'network_names': ['HBTC'], 'fee': 0.00018925, 'withdraw_min': 0.001},
+            {'network_names': ['HRC20BTC', 'HBTC'], 'fee': 1.11e-06, 'withdraw_min': 0.001},
+            {'network_names': ['TRC20BTC', 'TRX'], 'fee': 5e-05, 'withdraw_min': 0.001}]}
     """
 
     dict_with_networks = {}
@@ -392,6 +412,7 @@ def _get_networks_from_huobi_many_coin(coins:list) -> dict:
         logging.error(text)
 
     return dict_with_networks
+
 
 
 # Биржа bitget --------------------------------------------------------------------------------------------------------
