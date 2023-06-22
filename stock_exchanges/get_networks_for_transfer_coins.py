@@ -24,7 +24,14 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
     :param dict_with_keys: словарь с ключами для доступа к API биржи
     :param coin: монета, для которой нужно получить список сетей
 
-    При запросе по API с биржи мы получаем словарь, где:
+    При запросе по API с биржи мы получаем словарь:
+     'retCode': 0, 'retMsg': '', 'result': {'rows': [
+     {'name': 'ETH', 'coin': 'ETH', 'remainAmount': '10000', 'chains': [
+       {'chainType': 'ERC20', 'confirmation': '6', 'withdrawFee': '0.0019', 'depositMin': '0', 'withdrawMin': '0.0019', 'chain': 'ETH', 'chainDeposit': '1', 'chainWithdraw': '1', 'minAccuracy': '8', 'withdrawPercentageFee': '0'},
+       {'chainType': 'Arbitrum One', 'confirmation': '12', 'withdrawFee': '0.0003', 'depositMin': '0', 'withdrawMin': '0.0003', 'chain': 'ARBI', 'chainDeposit': '1', 'chainWithdraw': '1', 'minAccuracy': '8', 'withdrawPercentageFee': '0'},
+       {'chainType': 'BSC (BEP20)', 'confirmation': '15', 'withdrawFee': '0.0003', 'depositMin': '0', 'withdrawMin': '0.0003', 'chain': 'BSC', 'chainDeposit': '1', 'chainWithdraw': '1', 'minAccuracy': '8', 'withdrawPercentageFee': '0'}}
+
+     где:
     - "chainType": указывает на тип блокчейна, который используется для транзакций с этой криптовалютой. В данном случае это Ethereum с использованием стандарта ERC20.
     - "confirmation": указывает на количество подтверждений транзакции, необходимых для ее завершения. В данном случае это 64 подтверждения.
     - "withdrawFee": указывает на комиссию, которую пользователь должен заплатить при выводе этой криптовалюты с биржи. В данном случае это 0,0035 ETH.
