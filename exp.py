@@ -1,31 +1,26 @@
-import datetime
-import json
+import configparser
 
+config = configparser.ConfigParser()
+config.read('config.ini')
 
-def _save_networks_to_file(dict_with_networks):
-    file_path = 'networks.json'
-    with open(file_path, 'w') as f:
-        json.dump(dict_with_networks, f)
+# валюты
+currencies = config.get('settings', 'currencies').strip()
+currencies = currencies.replace(" ", "")
+currencies = currencies.replace("\n", "")
+currencies = currencies.strip('][').split(',')
 
+# черный список
+currencies_black_list = config.get('settings', 'currencies_black_list').strip()
+currencies_black_list = currencies_black_list.replace(" ", "")
+currencies_black_list = currencies_black_list.replace("\n", "")
+currencies_black_list = currencies_black_list.strip('][').split(',')
 
-def _get_networks_from_file():
-    file_path = 'networks.json'
-    with open(file_path) as f:
-        dict_with_networks = json.load(f)
-    return dict_with_networks
+# формируем новый список из неповторяющихся валют и отстутвующих в черном списке
+new_list = []
+for currency in currencies:
+    if currency not in new_list and currency not in currencies_black_list:
+        new_list.append(currency)
 
+currencies = new_list
 
-network_last_update = datetime.datetime.strptime('2023-01-10 18:26:47.204538', '%Y-%m-%d %H:%M:%S.%f')
-
-data_and_time_in_str = network_last_update.strftime('%Y-%m-%d %H:%M:%S.%f')
-dict = {'date': data_and_time_in_str}
-
-_save_networks_to_file(dict)
-
-
-dict_2 = _get_networks_from_file()
-
-
-dage = datetime.datetime.strptime(dict_2['date'], '%Y-%m-%d %H:%M:%S.%f')
-
-print(type(dage))
+print(len(new_list))
