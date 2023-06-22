@@ -240,7 +240,8 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
     dict_with_result['order_buy'] = []
     dict_with_result['orders_sell'] = []
 
-    presumably_spent = 0  # предположительно потратили
+    presumably_spent_only_on_coin = 0  # предположительно потратили только на монеты
+    presumably_spent_with_network_fee = 0  # предположительно потратили и на монеты и на комиссию сети
     presumably_bought = 0  # предположительно куплено монет
 
     order_buy = order_buy_and_orders_sell['order_buy']  # ордер на покупку
@@ -263,13 +264,13 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
 
         if presumably_bought + quantity_order_sell <= quantity_order_buy:  # если предположительно куплено монет + количество монет в ордере на продажу меньше или равно количеству монет в ордере на покупку
             presumably_bought += quantity_order_sell  # прибавляем к предположительно купленным монетам количество монет в ордере на продажу
-            presumably_spent += quantity_order_sell * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет в ордере на продажу умноженное на цену ордера на продажу
+            presumably_spent_only_on_coin += quantity_order_sell * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет в ордере на продажу умноженное на цену ордера на продажу
             dict_with_result['orders_sell'].append(order_sell)  # добавляем ордер на продажу в список
 
         else:  # если предположительно куплено монет + количество монет в ордере на продажу больше чем количество монет в ордере на покупку
             we_need = quantity_order_buy - presumably_bought  # вычисляем сколько нам нужно монет, что бы перекрыть потребность
             presumably_bought += we_need  # прибавляем к предположительно купленным монетам количество монет, которое нам нужно
-            presumably_spent += we_need * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет, которое нам нужно умноженное на цену ордера на продажу
+            presumably_spent_only_on_coin += we_need * price_order_sell  # прибавляем к предположительно потраченным деньгам количество монет, которое нам нужно умноженное на цену ордера на продажу
             order_sell[3] = we_need  # меняем количество монет в ордере на продажу на количество монет, которое нам нужно
             dict_with_result['orders_sell'].append(order_sell)  # добавляем ордер на продажу в список
             break  # выходим из цикла
@@ -297,20 +298,26 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
     network_fee_in_dollars = network_fee * price_order_buy
     dict_with_result['network_with_min_fee']['fee_in_dollars'] = network_fee_in_dollars
 
-    # прибавляем к предположительно потраченным деньгам комиссию сети умноженную на цену ордера покупки
-    presumably_spent += network_fee_in_dollars
+    # прибавляем к предположительно потраченным деньгам комиссию сети
+    presumably_spent_with_network_fee = presumably_spent_only_on_coin + network_fee_in_dollars
+
+    # считаем сколько мы выручим с продажи монет (количество купленных монет * цена монеты в ордере на покупку)
+    income_from_sale_coins = presumably_bought * price_order_buy
 
     # считаем маржу в долларах
     # Маржа в долларах: (количество купленных монет * цена монеты в ордере на покупку) - количество потраченных денег
-    margin_in_dol = (presumably_bought * price_order_buy) - presumably_spent
+    margin_in_dol = income_from_sale_coins - presumably_spent_with_network_fee
     margin_in_dol = round(margin_in_dol, 2)
 
     # считаем маржу в процентах
-    margin = margin_in_dol/presumably_spent * 100
+    margin = margin_in_dol/presumably_spent_with_network_fee * 100
     margin = round(margin, 2)
 
-    dict_with_result['need_spent'] = presumably_spent  # надо потратить
-    dict_with_result['need_bought'] = presumably_bought  # надо купить
+    dict_with_result['need_bought'] = presumably_bought  # надо купить монет
+    dict_with_result['need_spent'] = presumably_spent_only_on_coin  # надо потратить только на монеты
+    dict_with_result['need_spent_with_network_fee'] = presumably_spent_with_network_fee  # надо потратить и на моненты и на комиссию сети
+    dict_with_result['income_from_sale_coins'] = income_from_sale_coins  # сколько мы получим с продажи монет
+
     dict_with_result['margin'] = margin
     dict_with_result['margin_in_dol'] = margin_in_dol
 

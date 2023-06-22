@@ -155,8 +155,12 @@ def main_script(first_message):
                         # переменные ---------------------------------------------
                         order_buy = order['order_buy'] # ордер на покупку
                         orders_sell = order['orders_sell']  # ордера на продажу
-                        need_spent = order['need_spent']  # надо потратить
-                        need_bought = order['need_bought'] # надо купить монет
+                        need_spent_on_coins = order['need_spent']  # надо потратить только на монеты (без комиссии сети)
+                        need_bought = order['need_bought'] # надо купить монет (количество монет)
+                        income_from_sale_coins = order['income_from_sale_coins']  # сколько мы получим с продажи монет
+                        names_network = order['network_with_min_fee']['network_names']  # названия сети
+                        network_fee_in_coin = order['network_with_min_fee']['fee']  # комиссия сети в рассматриваемых монетах
+                        network_fee_in_dollars = order['network_with_min_fee']['fee_in_dollars']  # комиссия сети в долларах
                         profit = order['margin'] # профит в процентах
                         profit_in_dol = order['margin_in_dol']  # профит в долларах
 
@@ -165,7 +169,7 @@ def main_script(first_message):
 
                         # если профит больше минимального и надо потратить меньше максимального
                         if max_profit_from_conf >= profit >= min_profit_from_conf \
-                                and max_invest_conf >= need_spent >= min_invest_conf \
+                                and max_invest_conf >= need_spent_on_coins >= min_invest_conf \
                                 and profit_in_dol >= min_profit_usd_from_conf:
 
                             # публикумем сообщение в телеграмм только в том слаче, если:
@@ -175,35 +179,51 @@ def main_script(first_message):
                                     or (publish_without_networks == 'No' and len(order['matching_networks']) > 0):
 
                                 # формируем спсок из всех ордеров на проаджу
-                                text_orders_sell = ''
-                                for order_sell in orders_sell:  # в отношении каждого ордера на продажу
-                                    string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
-                                    text_orders_sell += string
+                                # text_orders_sell = ''
+                                # for order_sell in orders_sell:  # в отношении каждого ордера на продажу
+                                #     string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
+                                #     text_orders_sell += string
+
+                                all_prices_orders_sell = [order[2] for order in orders_sell]
+                                min_price_orders_sell = min(all_prices_orders_sell)
+                                max_price_orders_sell = max(all_prices_orders_sell)
 
                                 # формируем сообщение
-                                message = f"Пара: <b>{currency}/USDT</b>\n\n" \
-                                          f"" \
-                                          f"✅Покупка: <b><a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a></b>\n\n" \
-                                          f"" \
-                                          f"Выкупить объем: <b>{round(need_bought, 4)} {currency}</b>\n" \
-                                          f"{text_orders_sell}" \
-                                          f"Потратив <b>{round(need_spent, 2)} USDT</b>\n\n" \
-                                          f"" \
-                                          f"🔻Продажа: <b><a href='{name_exchange_where_sell}'>{order_buy[0]}</a></b>\n" \
-                                          f"Продать: {order_buy[4]} {currency}\n" \
-                                          f"По цене: {order_buy[3]} USDT\n\n" \
-                                          f"" \
-                                          f"📊 Спред: {profit}%\n" \
-                                          f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
-                                          f"Для проверки:\n\n" \
-                                          f"Все совпадающие сети кол-во {len(order['matching_networks'])}\n" \
-                                          f"Список совпадающих сетей: {order['matching_networks']}\n" \
-                                          f"Самая выгодная сеть: {order['network_with_min_fee']}\n" \
-                                          f"Сети биржи 1: {dict_with_networks[name_exchange_where_buy][currency]}\n" \
-                                          f"Сети биржи 2: {dict_with_networks[name_exchange_where_sell][currency]}\n"
+                                # message = f"Пара: <b>{currency}/USDT</b>\n\n" \
+                                #           f"" \
+                                #           f"✅Покупка: <b><a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a></b>\n\n" \
+                                #           f"" \
+                                #           f"Выкупить объем: <b>{round(need_bought, 4)} {currency}</b>\n" \
+                                #           f"{text_orders_sell}" \
+                                #           f"Потратив <b>{round(need_spent_on_coins, 2)} USDT</b>\n\n" \
+                                #           f"" \
+                                #           f"🔻Продажа: <b><a href='{name_exchange_where_sell}'>{order_buy[0]}</a></b>\n" \
+                                #           f"Продать: {order_buy[4]} {currency}\n" \
+                                #           f"По цене: {order_buy[3]} USDT\n\n" \
+                                #           f"" \
+                                #           f"📊 Спред: {profit}%\n" \
+                                #           f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
+                                #           f"Для проверки:\n\n" \
+                                #           f"Все совпадающие сети кол-во {len(order['matching_networks'])}\n" \
+                                #           f"Список совпадающих сетей: {order['matching_networks']}\n" \
+                                #           f"Самая выгодная сеть: {order['network_with_min_fee']}\n" \
+                                #           f"Сети биржи 1: {dict_with_networks[name_exchange_where_buy][currency]}\n" \
+                                #           f"Сети биржи 2: {dict_with_networks[name_exchange_where_sell][currency]}\n"
 
-                                message_2 = f""
+                                str_names_network = ', '.join(names_network)  # объединяем элементы списка через запятую и пробел
 
+                                message = f" <a href='{name_exchange_where_sell}'>{order_buy[0]}</a> -> <a href='{name_exchange_where_sell}'>{order_buy[0]}</a> | <b>{currency}/USDT</b>\n\n" \
+                                            f"✅  <b>Покупка</b>\n\n" \
+                                            f"<b>Объем:</b> {round(need_spent_on_coins, 2)} -> {round(need_bought, 4)} {currency}\n" \
+                                            f"<b>Цена:</b> {min_price_orders_sell} - {max_price_orders_sell}\n\n" \
+                                            f"🔻 <b>Продажа</b>\n\n" \
+                                            f"<b>Объем:</b> {order_buy[4]} {currency} -> {income_from_sale_coins} USDT\n" \
+                                            f"<b>Цена:</b> {order_buy[3]} USDT\n\n" \
+                                            f"<b>Профит:</b> {profit_in_dol} USDT\n" \
+                                            f"<b>Спред:</b> {profit}%\n\n" \
+                                            f"📩 <b>Перевод:</b>\n" \
+                                            f"<b>Сеть:</b> {str_names_network}\n" \
+                                            f"<b>Комиссия:</b> {network_fee_in_coin} {currency} ({network_fee_in_dollars} $)"
 
                                 _send_message(bot, chats_list, message)
 

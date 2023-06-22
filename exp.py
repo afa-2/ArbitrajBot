@@ -1,26 +1,17 @@
-import configparser
+import json
 
-config = configparser.ConfigParser()
-config.read('config.ini')
+def _send_message(bot, chats_list, message):
+    for chat in chats_list:
+        if len(chat) > 0:
+            bot.send_message(chat, message, parse_mode="HTML", disable_web_page_preview=True)
 
-# валюты
-currencies = config.get('settings', 'currencies').strip()
-currencies = currencies.replace(" ", "")
-currencies = currencies.replace("\n", "")
-currencies = currencies.strip('][').split(',')
 
-# черный список
-currencies_black_list = config.get('settings', 'currencies_black_list').strip()
-currencies_black_list = currencies_black_list.replace(" ", "")
-currencies_black_list = currencies_black_list.replace("\n", "")
-currencies_black_list = currencies_black_list.strip('][').split(',')
+def _save_networks_to_file(dict_with_networks):
+    file_path = 'networks.json'
+    with open(file_path, 'w') as f:
+        json.dump(dict_with_networks, f)
 
-# формируем новый список из неповторяющихся валют и отстутвующих в черном списке
-new_list = []
-for currency in currencies:
-    if currency not in new_list and currency not in currencies_black_list:
-        new_list.append(currency)
 
-currencies = new_list
+dict = {'one': 1, 'two': 2}
 
-print(len(new_list))
+_save_networks_to_file(dict)
