@@ -212,7 +212,7 @@ def main_script(first_message):
 
                                 str_names_network = ', '.join(names_network)  # объединяем элементы списка через запятую и пробел
 
-                                message = f" <a href='{name_exchange_where_sell}'>{order_buy[0]}</a> -> <a href='{name_exchange_where_sell}'>{order_buy[0]}</a> | <b>{currency}/USDT</b>\n\n" \
+                                message = f"<a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a> -> <a href='{name_exchange_where_sell}'>{order_buy[0]}</a> | <b>{currency}/USDT</b>\n\n" \
                                           f"✅  <b>Покупка</b>\n\n" \
                                           f"<b>Объем:</b> {round(need_spent_on_coins, 2)} -> {round(need_bought, 4)} {currency}\n" \
                                           f"<b>Цена:</b> {min_price_orders_sell} - {max_price_orders_sell}\n\n" \
