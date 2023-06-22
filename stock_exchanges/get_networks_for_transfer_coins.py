@@ -7,7 +7,7 @@ import logging
 
 
 # Биржа Bybit ---------------------------------------------------------------------------------------------------------
-def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
+def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> list:
     """
     Функция получает список сетей для перевода монет с биржи и на биржу Bybit в отношении одной монеты
 
@@ -227,7 +227,7 @@ def _get_networks_from_mexc_many_coin(dict_with_keys: dict) -> dict:
 
 
 # Биржа Kucoin ---------------------------------------------------------------------------------------------------------
-def _get_networks_from_kucoin_one_coin(coin: str) -> dict:
+def _get_networks_from_kucoin_one_coin(coin: str) -> list:
     """
     Функция получает сети для одной монеты с биржи Kucoin
     :param coin: название монеты
@@ -250,13 +250,14 @@ def _get_networks_from_kucoin_one_coin(coin: str) -> dict:
     confirms - количество подтверждений
     contractAddress - адрес контракта
 
-    Возвращает словарь с сетями вида:
-    {
-    'OPTIMISM': {'fee': '0.0035', 'deposit_min': '0', 'withdraw_min': '0.0035', 'percentage_fee': '0'},
-    'ERC20': {'fee': '0.0003', 'deposit_min': '0', 'withdraw_min': '0.0003', 'percentage_fee': '0'}
-    }
+    Возвращает список с сетями вида:
+        [{'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.001, 'withdraw_min': 0.01},
+        {'network_names': ['ERC20', 'ETH'], 'fee': 0.005, 'withdraw_min': 0.01},
+        {'network_names': ['KCC', 'KCC'], 'fee': 0.0002, 'withdraw_min': 0.01},
+        {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
+        {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}]
     """
-    dict_for_return = {}  # словарь для возврата
+    list_for_return = []  # словарь для возврата
     response = ''
 
     try:
@@ -268,12 +269,16 @@ def _get_networks_from_kucoin_one_coin(coin: str) -> dict:
             chains = response['data']['chains']
 
             for chain in chains:
+                dict_with_network_params = {}
+                # названия сети
+                dict_with_network_params['network_names'] = [str(chain['chainName']).upper(), str(chain['chain']).upper()]
+                # комиссия
                 fee = float(chain['withdrawalMinFee'])
+                dict_with_network_params['fee'] = fee
+                # минимальный вывод
                 withdraw_min = float(chain['withdrawalMinSize'])
-                percentage_fee = 0
-                dict_for_return[chain['chainName']] = {'fee': fee,
-                                                       'withdraw_min': withdraw_min,
-                                                       'percentage_fee': percentage_fee}
+                dict_with_network_params['withdraw_min'] = withdraw_min
+                list_for_return.append(dict_with_network_params)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_kucoin_one_coin" произошла ошибка: {e}, ' \
@@ -281,17 +286,24 @@ def _get_networks_from_kucoin_one_coin(coin: str) -> dict:
         logging.error(text)
         time.sleep(30)
 
-    return dict_for_return
+    return list_for_return
 
 
 def _get_networks_from_kucoin_many_coin(coins:list) -> dict:
     """
     Функция получает список сетей для перевода монет с биржи и на биржу Kukoin в отношении всех переданных монет
     Возвращает словарь типа
-    {'ETH': {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-            'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-            'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
-     'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
+    {'ETH': [{'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.001, 'withdraw_min': 0.01},
+            {'network_names': ['ERC20', 'ETH'], 'fee': 0.005, 'withdraw_min': 0.01},
+            {'network_names': ['KCC', 'KCC'], 'fee': 0.0002, 'withdraw_min': 0.01},
+            {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
+            {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}],
+    'BTC': [{'network_names': ['BTC', 'BTC'], 'fee': 0.0005, 'withdraw_min': 0.0008},
+            {'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.0001, 'withdraw_min': 0.0005},
+            {'network_names': ['KCC', 'KCC'], 'fee': 2e-05, 'withdraw_min': 0.0008},
+            {'network_names': ['TRC20', 'TRX'], 'fee': 0.0001, 'withdraw_min': 0.0005},
+            {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.0001, 'withdraw_min': 0.0005},
+            {'network_names': ['BTC-SEGWIT', 'BECH32'], 'fee': 0.0005, 'withdraw_min': 0.0008}]}
     """
     dict_with_networks = {}
 
