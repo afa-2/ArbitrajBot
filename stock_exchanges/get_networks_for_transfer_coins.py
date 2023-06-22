@@ -34,11 +34,11 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
     - "withdrawPercentageFee": указывает на процент комиссии, который биржа берет с пользователей при выводе этой криптовалюты. В данном случае это 0, то есть биржа не бет комиссию за вывод.
 
     Функция возвращает список сетей типа:
-    [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-    {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-    {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-    {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015, 'percentage_fee': 0.0},
-    {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}]
+    [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019},
+    {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003},
+    {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003},
+    {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015},
+    {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003}]
     """
 
     def _genSignature(payload, api_key, recv_window, secret_key):
@@ -89,7 +89,6 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
                 dict_with_params['network_names'] = [str(chain['chainType']).upper(), str(chain['chain']).upper()]
                 dict_with_params['fee'] = float(chain['withdrawFee'])
                 dict_with_params['withdraw_min'] = float(chain['withdrawMin'])
-                dict_with_params['percentage_fee'] = float(chain['withdrawPercentageFee'])
 
                 list_with_networks.append(dict_with_params)
 
@@ -107,12 +106,12 @@ def _get_networks_from_bybit_many_coin(dict_with_keys:dict, coins:list) -> dict:
     """
     Функция получает список сетей для перевода монет с биржи и на биржу Bybit в отношении всех переданных монет
     Возвращает словарь типа:
-    {'ETH': [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-            {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-            {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-            {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015, 'percentage_fee': 0.0},
-            {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}],
-    'BTC': [{'network_names': ['BTC', 'BTC'], 'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}]}
+    {'ETH': [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019},
+            {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003},
+            {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003},
+            {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015},
+            {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003}],
+    'BTC': [{'network_names': ['BTC', 'BTC'], 'fee': 0.0005, 'withdraw_min': 0.0005}]}
     """
     dict_with_networks = {}
 
@@ -164,11 +163,19 @@ def _get_networks_from_mexc_many_coin(dict_with_keys: dict) -> dict:
     - 'withdrawTips': None - это подсказка, которая может помочь пользователям при выводе криптовалюты.
     - 'depositTips': None - это подсказка, которая может помочь пользователям при пополнении кошелька криптовалюты Ethereum.
 
-    Возвращает словарь типа
-    {'ETH': {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-            'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-            'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
-     'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
+    Возвращает словарь типа:
+    {'ETH': [{'network_names': ['ERC20'], 'fee': 0.0015, 'withdraw_min': 0.004},
+            {'network_names': ['ARBITRUM ONE'], 'fee': 0.001, 'withdraw_min': 0.01},
+            {'network_names': ['BOBA'], 'fee': 0.001, 'withdraw_min': 0.003},
+            {'network_names': ['BEP20(BSC)'], 'fee': 0.0005, 'withdraw_min': 0.001},
+            {'network_names': ['OP'], 'fee': 0.0006, 'withdraw_min': 0.005},
+            {'network_names': ['SOL'], 'fee': 0.0001, 'withdraw_min': 0.0002},
+            {'network_names': ['STARKNET'], 'fee': 0.001, 'withdraw_min': 0.002},
+            {'network_names': ['TRC20'], 'fee': 0.001, 'withdraw_min': 0.002},
+            {'network_names': ['ZKSYNC LITE(V1)'], 'fee': 0.0003, 'withdraw_min': 0.0005}],
+    'BTC': [{'network_names': ['BTC'], 'fee': 0.0003, 'withdraw_min': 0.001},
+            {'network_names': ['BEP20(BSC)'], 'fee': 1e-05, 'withdraw_min': 0.0001},
+            {'network_names': ['TRC20'], 'fee': 0.0001, 'withdraw_min': 0.001}]}
     """
     dict_wint_coins_and_networks = {}
     response = ''
@@ -196,15 +203,22 @@ def _get_networks_from_mexc_many_coin(dict_with_keys: dict) -> dict:
 
         for row_with_coin_and_list_networks in response:
             coin = row_with_coin_and_list_networks['coin']
-            dict_wint_coins_and_networks[coin.upper()] = {}
+            coin = coin.upper()
 
+            dict_wint_coins_and_networks[coin] = []  # список со словарями. Каждый словарь - параметры сети
             for row_network in row_with_coin_and_list_networks['networkList']:
+                dict_with_params_network = {}  # словарь с параметрами сети
+                # название сети
                 network = row_network['network'].upper()
+                dict_with_params_network['network_names'] = [network]
+                # комиссия
                 fee = float(row_network['withdrawFee'])
+                dict_with_params_network['fee'] = fee
+                # минимальный размер вывода
                 withdraw_min = float(row_network['withdrawMin'])
-                percentage_fee = 0
-                dict_wint_coins_and_networks[coin][network] = {'fee': fee, 'withdraw_min': withdraw_min,
-                                                               'percentage_fee': percentage_fee}
+                dict_with_params_network['withdraw_min'] = withdraw_min
+                dict_wint_coins_and_networks[coin].append(dict_with_params_network)
+
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_mexc_many_coin" произошла ошибка: {e}, response: {response}'
         logging.error(text)
@@ -581,8 +595,8 @@ def get_networks_for_transfer_coins(dict_with_keys:dict, coins:list) -> dict:
 #                   'mexc': {'api_key': 'mx0vglCjkyejHhko29', 'secret_key': '0a4699a4461a4b358b50c509e1c1f8e8'},
 #                   'gate': {'api_key': '90323691e2d247ab1f7bccbf187e6567', 'secret_key': 'a4b8540fc1d95822f79dcf362103e0e253805dd693befb8c0193dddd65384fad'}}
 # #
-# # coins = ['eth', 'btc']
+# coins = ['eth', 'btc']
 #
-# result = _get_networks_from_bybit_one_coin(dict_with_keys, 'eth')
+# result = _get_networks_from_bybit_many_coin(dict_with_keys, coins)
 # # result = get_networks_for_transfer_coins(dict_with_keys, coins)
 # print(result)
