@@ -3,6 +3,7 @@ import configparser
 import time
 import logging
 import datetime
+import json
 from stock_exchanges.get_orders_from_exchanges import all_list_from_all_stock_market
 from stock_exchanges.working_with_data import data_processing
 from stock_exchanges.get_networks_for_transfer_coins import get_networks_for_transfer_coins
@@ -12,6 +13,19 @@ def _send_message(bot, chats_list, message):
     for chat in chats_list:
         if len(chat) > 0:
             bot.send_message(chat, message, parse_mode="HTML", disable_web_page_preview=True)
+
+
+def _save_networks_to_file(dict_with_networks):
+    file_path = 'networks.json'
+    with open(file_path, 'w') as f:
+        json.dump(dict_with_networks, f)
+
+
+def _get_networks_from_file():
+    file_path = 'networks.json'
+    with open(file_path) as f:
+        dict_with_networks = json.load(f)
+    return dict_with_networks
 
 
 def main_script(first_message):
@@ -77,8 +91,12 @@ def main_script(first_message):
         )
 
         # Другие переменные -------------------------------------------------------------------------------------------
-        network_last_update = datetime.datetime.strptime('2023-01-10 18:26:47.204538', '%Y-%m-%d %H:%M:%S.%f')
-        dict_with_networks = {'last_update': network_last_update}  # в словарь сразу отправляем тип datatime
+        # пробуем получить словарь с сетями из файла
+        try:
+            dict_with_networks = _get_networks_from_file()
+        except:  # если не получилось, создаем словарь по новой
+            network_last_update = datetime.datetime.strptime('2023-01-10 18:26:47.204538', '%Y-%m-%d %H:%M:%S.%f')
+            dict_with_networks = {'last_update': network_last_update}  # в словарь сразу отправляем тип datatime
 
         # Программа ---------------------------------------------------------------------------------------------------
         bot = telebot.TeleBot(api)  # запускаем бота
@@ -107,6 +125,7 @@ def main_script(first_message):
                 start_time_update_networks = time.time()  # Засекаем время начала обновления сетей
                 _send_message(bot, chats_list, "Обновление сетей")
                 dict_with_networks = get_networks_for_transfer_coins(dict_with_keys, currencies)
+                _save_networks_to_file(dict_with_networks)  # сохраняем в файл
                 end_time_update_networks = time.time()  # Засекаем время окончания выполнения кода
                 time_update_networks = end_time_update_networks - start_time_update_networks  # Вычисляем затраченное время
                 _send_message(bot, chats_list, 'Сети обновлены')

@@ -107,12 +107,14 @@ def _searching_currency_differences(list_with_orders_from_all_stock_market: list
 def return_networks_for_exchange_and_coin(dict_with_networks: dict, name_exchange: str, coin: str):
     """
     Функция принимает словарь с сетями, название биржи и название монеты. Находит в словаре сети, отнсящиеся к этой
-    бирже и к этой монете и возвращает.
+    бирже и к этой монете и возвращает список сетей.
 
     Пример возврата:
-    {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
-     'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
-     'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}}
+        [{'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.001, 'withdraw_min': 0.01},
+        {'network_names': ['ERC20', 'ETH'], 'fee': 0.005, 'withdraw_min': 0.01},
+        {'network_names': ['KCC', 'KCC'], 'fee': 0.0002, 'withdraw_min': 0.01},
+        {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
+        {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}]
     """
     networks = {}
     if name_exchange in dict_with_networks:
@@ -140,6 +142,26 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
          'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
          'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
     }
+
+    {'last_update': datetime.datetime(2023, 6, 21, 16, 8, 47, 390196),
+    'bybit': {'BTC': [{'network_names': ['BTC'], 'fee': 0.0005, 'withdraw_min': 0.002},
+                    {'network_names': ['BEP20'], 'fee': 5.1e-06, 'withdraw_min': 7.8e-06}],
+            'USDT': [{'network_names': ['OMNI'], 'fee': 15.0, 'withdraw_min': 100.0},
+                    {'network_names': ['ERC20'], 'fee': 3.0638816, 'withdraw_min': 1.0},
+                    {'network_names': ['BTTC'], 'fee': 1.0, 'withdraw_min': 1.0}],
+            'ETH': [{'network_names': ['ARBITRUMNOVA'], 'fee': 0.1, 'withdraw_min': 10.0},
+                    {'network_names': ['ARBITRUMONE'], 'fee': 0.0001, 'withdraw_min': 0.0008},
+                    {'network_names': ['BEP20'], 'fee': 8e-05, 'withdraw_min': 0.00011}]},
+    'mexc': {'BTC': [{'network_names': ['BTC'], 'fee': 0.0005, 'withdraw_min': 0.002},
+                    {'network_names': ['BEP20'], 'fee': 5.1e-06, 'withdraw_min': 7.8e-06}],
+            'USDT': [{'network_names': ['OMNI'], 'fee': 15.0, 'withdraw_min': 100.0},
+                    {'network_names': ['ERC20'], 'fee': 3.0638816, 'withdraw_min': 1.0},
+                    {'network_names': ['BTTC'], 'fee': 1.0, 'withdraw_min': 1.0}],
+            'ETH': [{'network_names': ['ARBITRUMNOVA'], 'fee': 0.1, 'withdraw_min': 10.0},
+                    {'network_names': ['ARBITRUMONE'], 'fee': 0.0001, 'withdraw_min': 0.0008},
+                    {'network_names': ['BEP20'], 'fee': 8e-05, 'withdraw_min': 0.00011}]},
+    }
+
     2) Биржа 1
     3) Биржа 2
     4) Название валюты
@@ -147,7 +169,7 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
     Ищем совпадения валют в словаре с биржами. Возвращаем список с совпадениями валют.
 
     Пример возврата:
-    [{'network_name': 'BTC', 'fee': 0.0005}]
+    [{'network_names': ['ERC20', 'ETH'], 'fee': 0.004}, {'network_names': ['KCC', 'DHDF', 'VBFGN'], 'fee': 0.0005}]
     """
     coin = coin.upper()
     name_exchange_1 = name_exchange_1.lower()
@@ -158,18 +180,41 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
     # сети с биржи 2
     networks_on_exchange_2 = return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_2, coin)
 
+    # [{'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.001, 'withdraw_min': 0.01},
+    #  {'network_names': ['ERC20', 'ETH'], 'fee': 0.005, 'withdraw_min': 0.01},
+    #  {'network_names': ['KCC', 'KCC'], 'fee': 0.0002, 'withdraw_min': 0.01},
+    #  {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
+    #  {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}]
+
     #  ищем совпадения по сетям и подбираем самую выгодную
     list_networks_matches = []  # список совпадающих сетей
-    selected_network = {'network_name': '', 'fee': 0}  # выбранная сеть
-    for network in networks_on_exchange_1:
-        if network in networks_on_exchange_2:
-            # комиссия в сети с первой биржи
-            fee_network_from_exchange_1 = float(networks_on_exchange_1[network]['fee'])
-            # комиссия в ети во второй бирже
-            fee_network_from_exchange_2 = float(networks_on_exchange_2[network]['fee'])
-            # выбираем самую большую комиссию
-            fee_network = max(fee_network_from_exchange_1, fee_network_from_exchange_2)
-            list_networks_matches.append({'network_name': network, 'fee': fee_network})
+
+    for network_exchange_1 in networks_on_exchange_1:
+        for network_name_from_exchange_1 in network_exchange_1['network_names']:
+            for network_exchange_2 in networks_on_exchange_2:
+                if network_name_from_exchange_1 in network_exchange_2['network_names']:
+                    # названия сети с первой биржи
+                    network_names_from_exchange_1 = network_exchange_1['network_names']
+                    # названия сети со второй биржи
+                    network_names_from_exchange_2 = network_exchange_2['network_names']
+                    # комиссия в сети с первой биржи
+                    fee_network_from_exchange_1 = float(network_exchange_1['fee'])
+                    # комиссия в ети во второй бирже
+                    fee_network_from_exchange_2 = float(network_exchange_2['fee'])
+                    # выбираем самую большую комиссию
+                    fee_network = max(fee_network_from_exchange_1, fee_network_from_exchange_2)
+
+                    dict_with_parameters = {}  # словарь с параметрами сети
+                    # заполняем название
+                    dict_with_parameters['network_names'] = []
+                    for network_name in network_names_from_exchange_1 + network_names_from_exchange_2:
+                        if network_name not in dict_with_parameters['network_names']:
+                            dict_with_parameters['network_names'].append(network_name)
+                    # заполняем комиссию
+                    dict_with_parameters['fee'] = fee_network
+
+                    if dict_with_parameters not in list_networks_matches:
+                        list_networks_matches.append(dict_with_parameters)
 
     return list_networks_matches
 
