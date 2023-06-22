@@ -14,7 +14,14 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
     :param dict_with_keys: словарь с ключами для доступа к API биржи
     :param coin: монета, для которой нужно получить список сетей
 
-    При запросе по API с биржи мы получаем словарь, где:
+    При запросе по API с биржи мы получаем словарь:
+     'retCode': 0, 'retMsg': '', 'result': {'rows': [
+     {'name': 'ETH', 'coin': 'ETH', 'remainAmount': '10000', 'chains': [
+       {'chainType': 'ERC20', 'confirmation': '6', 'withdrawFee': '0.0019', 'depositMin': '0', 'withdrawMin': '0.0019', 'chain': 'ETH', 'chainDeposit': '1', 'chainWithdraw': '1', 'minAccuracy': '8', 'withdrawPercentageFee': '0'},
+       {'chainType': 'Arbitrum One', 'confirmation': '12', 'withdrawFee': '0.0003', 'depositMin': '0', 'withdrawMin': '0.0003', 'chain': 'ARBI', 'chainDeposit': '1', 'chainWithdraw': '1', 'minAccuracy': '8', 'withdrawPercentageFee': '0'},
+       {'chainType': 'BSC (BEP20)', 'confirmation': '15', 'withdrawFee': '0.0003', 'depositMin': '0', 'withdrawMin': '0.0003', 'chain': 'BSC', 'chainDeposit': '1', 'chainWithdraw': '1', 'minAccuracy': '8', 'withdrawPercentageFee': '0'}}
+
+     где:
     - "chainType": указывает на тип блокчейна, который используется для транзакций с этой криптовалютой. В данном случае это Ethereum с использованием стандарта ERC20.
     - "confirmation": указывает на количество подтверждений транзакции, необходимых для ее завершения. В данном случае это 64 подтверждения.
     - "withdrawFee": указывает на комиссию, которую пользователь должен заплатить при выводе этой криптовалюты с биржи. В данном случае это 0,0035 ETH.
@@ -26,9 +33,12 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
     - "minAccuracy": указывает на минимальную точность дробной части при работе с этой криптовалютой. В данном случае это 8 знаков после запятой.
     - "withdrawPercentageFee": указывает на процент комиссии, который биржа берет с пользователей при выводе этой криптовалюты. В данном случае это 0, то есть биржа не бет комиссию за вывод.
 
-    Функция возвращает словарь типа:
-    {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-    'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}}
+    Функция возвращает список сетей типа:
+    [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
+    {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+    {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+    {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015, 'percentage_fee': 0.0},
+    {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}]
     """
 
     def _genSignature(payload, api_key, recv_window, secret_key):
@@ -57,7 +67,7 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
 
         return response.json()
 
-    dict_with_networks = {}
+    list_with_networks = []
     response = ''
 
     try:
@@ -72,15 +82,16 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
         method = "GET"
         params = f"coin={coin}"
         response = _HTTP_Request(endpoint, method, params, url, api_key, secret_key, recv_window)
-        print(response)
+
         if len(response['result']['rows']) > 0:  # если в ответе вообще что-нибудь есть
             for chain in response['result']['rows'][0]['chains']:
                 dict_with_params = {}
+                dict_with_params['network_names'] = [str(chain['chainType']).upper(), str(chain['chain']).upper()]
                 dict_with_params['fee'] = float(chain['withdrawFee'])
                 dict_with_params['withdraw_min'] = float(chain['withdrawMin'])
                 dict_with_params['percentage_fee'] = float(chain['withdrawPercentageFee'])
 
-                dict_with_networks[chain['chain'].upper()] = dict_with_params
+                list_with_networks.append(dict_with_params)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_bybit_one_coin"' \
@@ -89,13 +100,56 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
         logging.error(text)
         time.sleep(30)
 
+    return list_with_networks
+
+
+def _get_networks_from_bybit_many_coin(dict_with_keys:dict, coins:list) -> dict:
+    """
+    Функция получает список сетей для перевода монет с биржи и на биржу Bybit в отношении всех переданных монет
+    Возвращает словарь типа:
+    {'ETH': [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
+            {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+            {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+            {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015, 'percentage_fee': 0.0},
+            {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}],
+    'BTC': [{'network_names': ['BTC', 'BTC'], 'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}]}
+    """
+    dict_with_networks = {}
+
+    try:
+        for coin in coins:
+            dict_with_networks[coin.upper()] = _get_networks_from_bybit_one_coin(dict_with_keys, coin)
+            time.sleep(0.5)
+
+    except Exception as e:
+        text = f'При выполнении функции "_get_networks_from_bybit_many_coin" произошла ошибка: {e}'
+        logging.error(text)
+
     return dict_with_networks
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 dict_with_keys = {'bybit': {'api_key': 'V1IkiWjudAPBY7xsdc', 'secret_key': 'fLPtrlAkhENn9PXhjR0cw1wHeqanRBG90iiE'},
                   'mexc': {'api_key': 'mx0vglCjkyejHhko29', 'secret_key': '0a4699a4461a4b358b50c509e1c1f8e8'},
                   'gate': {'api_key': '90323691e2d247ab1f7bccbf187e6567', 'secret_key': 'a4b8540fc1d95822f79dcf362103e0e253805dd693befb8c0193dddd65384fad'}}
 
 
-res = _get_networks_from_bybit_one_coin(dict_with_keys, 'ETH')
+res = _get_networks_from_bybit_many_coin(dict_with_keys, ['eth', 'btc'])
 
+print('-----------------------------------')
 print(res)

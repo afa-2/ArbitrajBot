@@ -1,13 +1,3 @@
-"""
-Это набор функций, которые получают список сетей для перевода монет с биржи на биржу.
-Функции, которые получают список сетей с разных бирж, возвращают список словарей, где каждый словарь, это сеть, где:
-{'bybit': {'eth': {'ETH': {'fee': '0.0019', 'withdraw_min': '0.0019', 'percentage_fee': '0'}, 'ARBI': {'fee': '0.0003', 'deposit_min': '0', 'withdraw_min': '0.0003', 'percentage_fee': '0'}, 'BSC': {'fee': '0.0003', 'deposit_min': '0', 'withdraw_min': '0.0003', 'percentage_fee': '0'}, 'ZKSYNC': {'fee': '0.00015', 'deposit_min': '0', 'withdraw_min': '0.00015', 'percentage_fee': '0'}, 'OP': {'fee': '0.0003', 'deposit_min': '0', 'withdraw_min': '0.0003', 'percentage_fee': '0'}}}, 'last_update': datetime.datetime(2023, 5, 26, 18, 28, 31, 5173)}
-chain - название сети
-fee - комиссия за перевод
-withdraw_min - минимальная сумма для вывода
-percentage_fee - комиссия за вывод в процентах
-"""
-
 import datetime
 import requests
 import time
@@ -43,9 +33,12 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
     - "minAccuracy": указывает на минимальную точность дробной части при работе с этой криптовалютой. В данном случае это 8 знаков после запятой.
     - "withdrawPercentageFee": указывает на процент комиссии, который биржа берет с пользователей при выводе этой криптовалюты. В данном случае это 0, то есть биржа не бет комиссию за вывод.
 
-    Функция возвращает словарь типа:
-    {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-    'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}}
+    Функция возвращает список сетей типа:
+    [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
+    {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+    {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+    {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015, 'percentage_fee': 0.0},
+    {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}]
     """
 
     def _genSignature(payload, api_key, recv_window, secret_key):
@@ -74,7 +67,7 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
 
         return response.json()
 
-    dict_with_networks = {}
+    list_with_networks = []
     response = ''
 
     try:
@@ -93,11 +86,12 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
         if len(response['result']['rows']) > 0:  # если в ответе вообще что-нибудь есть
             for chain in response['result']['rows'][0]['chains']:
                 dict_with_params = {}
+                dict_with_params['network_names'] = [str(chain['chainType']).upper(), str(chain['chain']).upper()]
                 dict_with_params['fee'] = float(chain['withdrawFee'])
                 dict_with_params['withdraw_min'] = float(chain['withdrawMin'])
                 dict_with_params['percentage_fee'] = float(chain['withdrawPercentageFee'])
 
-                dict_with_networks[chain['chain'].upper()] = dict_with_params
+                list_with_networks.append(dict_with_params)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_bybit_one_coin"' \
@@ -106,18 +100,19 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> dict:
         logging.error(text)
         time.sleep(30)
 
-    return dict_with_networks
+    return list_with_networks
 
 
 def _get_networks_from_bybit_many_coin(dict_with_keys:dict, coins:list) -> dict:
     """
     Функция получает список сетей для перевода монет с биржи и на биржу Bybit в отношении всех переданных монет
     Возвращает словарь типа:
-    {'ETH': {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-            'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-            'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
-     'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
-
+    {'ETH': [{'network_names': ['ERC20', 'ETH'], 'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
+            {'network_names': ['ARBITRUM ONE', 'ARBI'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+            {'network_names': ['BSC (BEP20)', 'BSC'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
+            {'network_names': ['ZKSYNC LITE', 'ZKSYNC'], 'fee': 0.00015, 'withdraw_min': 0.00015, 'percentage_fee': 0.0},
+            {'network_names': ['OPTIMISM', 'OP'], 'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}],
+    'BTC': [{'network_names': ['BTC', 'BTC'], 'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}]}
     """
     dict_with_networks = {}
 
@@ -139,8 +134,19 @@ def _get_networks_from_mexc_many_coin(dict_with_keys: dict) -> dict:
     Функция получает список всех сетей для перевода всех монет c биржи mexc
     :param dict_with_keys: словарь с ключами для доступа к API биржи
 
-    При запросе по API с биржи мы получаем словарь, где:
-    Примерный словарь: 'coin': 'ETH', 'name': 'ETH', 'networkList': [{'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': True, 'minConfirm': 64, 'name': 'Ethereum', 'network': 'ERC20', 'withdrawEnable': True, 'withdrawFee': '0.001500000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '6000.000000000000000000', 'withdrawMin': '0.004000000000000000', 'sameAddress': False, 'contract': '', 'withdrawTips': None, 'depositTips': None}]
+    При запросе по API с биржи мы получаем словарь
+    {'coin': 'ETH', 'name': 'ETH', 'networkList': [
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': True, 'minConfirm': 64, 'name': 'Ethereum', 'network': 'ERC20', 'withdrawEnable': True, 'withdrawFee': '0.001500000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '6000.000000000000000000', 'withdrawMin': '0.004000000000000000', 'sameAddress': False, 'contract': '', 'withdrawTips': None, 'depositTips': None},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': True, 'minConfirm': 100, 'name': 'Ethereum', 'network': 'Arbitrum One', 'withdrawEnable': True, 'withdrawFee': '0.001000000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '1000.000000000000000000', 'withdrawMin': '0.010000000000000000', 'sameAddress': False, 'contract': '', 'withdrawTips': None, 'depositTips': None},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': False, 'minConfirm': 12, 'name': 'Ethereum', 'network': 'BOBA', 'withdrawEnable': False, 'withdrawFee': '0.001000000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '1000.000000000000000000', 'withdrawMin': '0.003000000000000000', 'sameAddress': False, 'contract': '', 'withdrawTips': None, 'depositTips': None},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': True, 'minConfirm': 12, 'name': 'ETH-BSC', 'network': 'BEP20(BSC)', 'withdrawEnable': True, 'withdrawFee': '0.000500000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '10000.000000000000000000', 'withdrawMin': '0.001000000000000000', 'sameAddress': False, 'contract': '0x2170ed0880ac9a755fd29b2688956bd959f933f8', 'withdrawTips': None, 'depositTips': None},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': True, 'minConfirm': 30, 'name': 'ETH', 'network': 'OP', 'withdrawEnable': True, 'withdrawFee': '0.000600000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '1000.000000000000000000', 'withdrawMin': '0.005000000000000000', 'sameAddress': False, 'contract': '', 'withdrawTips': None, 'depositTips': None},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': False, 'minConfirm': 100, 'name': 'ETH', 'network': 'SOL', 'withdrawEnable': False, 'withdrawFee': '0.000100000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '1200.000000000000000000', 'withdrawMin': '0.000200000000000000', 'sameAddress': False, 'contract': '2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk', 'withdrawTips': None, 'depositTips': 'Due to block scanning delay on SOL, deposits may be slightly delayed.'},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': False, 'minConfirm': 2, 'name': 'ETH', 'network': 'STARKNET', 'withdrawEnable': False, 'withdrawFee': '0.001000000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '1000000.000000000000000000', 'withdrawMin': '0.002000000000000000', 'sameAddress': False, 'contract': '', 'withdrawTips': None, 'depositTips': None},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': True, 'minConfirm': 12, 'name': 'Ethereum', 'network': 'TRC20', 'withdrawEnable': True, 'withdrawFee': '0.001000000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '10000.000000000000000000', 'withdrawMin': '0.002000000000000000', 'sameAddress': False, 'contract': 'THb4CqiFdwNHsWsQCs4JhzwjMWys4aqCbF', 'withdrawTips': None, 'depositTips': None},
+      {'coin': 'ETH', 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.', 'depositEnable': True, 'minConfirm': 4, 'name': 'ETH', 'network': 'zkSync Lite(v1)', 'withdrawEnable': True, 'withdrawFee': '0.000300000000000000', 'withdrawIntegerMultiple': None, 'withdrawMax': '200.000000000000000000', 'withdrawMin': '0.000500000000000000', 'sameAddress': False, 'contract': '', 'withdrawTips': 'The token is currently zkSync Lite 1.0, Please confirm before proceeding.', 'depositTips': 'The token is currently zkSync Lite 1.0, Please confirm before proceeding.'}]}
+
+    где:
     - 'name': 'ETH' - это название криптовалюты Ethereum.
     - 'networkList': - список сетей, в которых можно переводить монету.
     - 'depositDesc': 'Wallet is under maintenance. Deposit has been suspended.' - это описание, которое говорит о том, что на данный момент невозможно пополнить кошелек криптовалюты Ethereum из-за технических работ.
