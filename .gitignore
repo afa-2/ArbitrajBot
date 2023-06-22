@@ -145,3 +145,5 @@ venv_smart_arbitraj_bot/
 secret_inf/
 config.ini
 else/
+networks.json
+my_log.log

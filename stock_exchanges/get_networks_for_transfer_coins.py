@@ -638,7 +638,7 @@ def get_networks_for_transfer_coins(dict_with_keys:dict, coins:list) -> dict:
     try:
         # добавляем последнее время обновления
         now = datetime.datetime.now()
-        dict_with_networks['last_update'] = now
+        dict_with_networks['last_update'] = now.strftime('%Y-%m-%d %H:%M:%S.%f')
 
         # получаем сети с биржи Bybit
         logging.info('Получаем сети с Bybit')

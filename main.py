@@ -94,8 +94,9 @@ def main_script(first_message):
         # пробуем получить словарь с сетями из файла
         try:
             dict_with_networks = _get_networks_from_file()
+            last_update = dict_with_networks['last_update']
         except:  # если не получилось, создаем словарь по новой
-            network_last_update = datetime.datetime.strptime('2023-01-10 18:26:47.204538', '%Y-%m-%d %H:%M:%S.%f')
+            network_last_update = '2023-01-10 18:26:47.204538'
             dict_with_networks = {'last_update': network_last_update}  # в словарь сразу отправляем тип datatime
 
         # Программа ---------------------------------------------------------------------------------------------------
@@ -117,7 +118,8 @@ def main_script(first_message):
         while True:
             # раздел работы с сетями
             # проверяем когда последний раз обновлялись сети
-            last_update = dict_with_networks['last_update']  # получаем время последнего обновления
+
+            last_update = datetime.datetime.strptime(dict_with_networks['last_update'], '%Y-%m-%d %H:%M:%S.%f')  # получаем время последнего обновления
             last_update_plus = last_update + datetime.timedelta(hours=update_networks)  # прибавляем часы из настройки
             now = datetime.datetime.now()  # узнаем сколько сейчас времени
 
@@ -192,6 +194,9 @@ def main_script(first_message):
                                           f"Самая выгодная сеть: {order['network_with_min_fee']}\n" \
                                           f"Сети биржи 1: {dict_with_networks[name_exchange_where_buy][currency]}\n" \
                                           f"Сети биржи 2: {dict_with_networks[name_exchange_where_sell][currency]}\n"
+
+                                message_2 = f""
+
 
                                 _send_message(bot, chats_list, message)
 
