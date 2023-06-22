@@ -5,7 +5,7 @@ import logging
 import datetime
 import json
 from stock_exchanges.get_orders_from_exchanges import all_list_from_all_stock_market
-from stock_exchanges.working_with_data import data_processing
+from stock_exchanges.working_with_data import data_processing, return_networks_for_exchange_and_coin
 from stock_exchanges.get_networks_for_transfer_coins import get_networks_for_transfer_coins
 
 
@@ -227,8 +227,8 @@ def main_script(first_message):
                                           f"Для проверки:\n\n" \
                                           f"Кол-во совпадающих сетей: {len(order['matching_networks'])}\n\n" \
                                           f"Самая выгодная сеть: {order['network_with_min_fee']}\n\n" \
-                                          f"Сети биржи 1: {dict_with_networks[name_exchange_where_buy][currency]}\n\n" \
-                                          f"Сети биржи 2: {dict_with_networks[name_exchange_where_sell][currency]}\n\n"
+                                          f"Сети биржи 1: {return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_where_buy, currency)}\n\n"\
+                                          f"Сети биржи 2: {return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_where_sell, currency)}\n\n"
 
                                 _send_message(bot, chats_list, message)
 
