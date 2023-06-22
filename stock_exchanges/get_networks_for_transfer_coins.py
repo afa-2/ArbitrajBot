@@ -86,7 +86,14 @@ def _get_networks_from_bybit_one_coin(dict_with_keys:dict, coin:str) -> list:
         if len(response['result']['rows']) > 0:  # если в ответе вообще что-нибудь есть
             for chain in response['result']['rows'][0]['chains']:
                 dict_with_params = {}
-                dict_with_params['network_names'] = [str(chain['chainType']).upper(), str(chain['chain']).upper()]
+
+                dict_with_params['network_names'] = []
+                network_names = [chain['chainType'], chain['chain']]
+                for network_name in network_names:
+                    network_name = str(network_name).upper()
+                    if network_name != '' and network_name not in dict_with_params['network_names']:
+                        dict_with_params['network_names'].append(network_name)
+
                 dict_with_params['fee'] = float(chain['withdrawFee'])
                 dict_with_params['withdraw_min'] = float(chain['withdrawMin'])
 
@@ -271,7 +278,13 @@ def _get_networks_from_kucoin_one_coin(coin: str) -> list:
             for chain in chains:
                 dict_with_network_params = {}
                 # названия сети
-                dict_with_network_params['network_names'] = [str(chain['chainName']).upper(), str(chain['chain']).upper()]
+                dict_with_network_params['network_names'] = []
+                network_names = [chain['chainName'], chain['chain']]
+                for network_name in network_names:
+                    network_name = str(network_name).upper()
+                    if network_name != '' and network_name not in dict_with_network_params['network_names']:
+                        dict_with_network_params['network_names'].append(network_name)
+
                 # комиссия
                 fee = float(chain['withdrawalMinFee'])
                 dict_with_network_params['fee'] = fee
@@ -414,9 +427,8 @@ def _get_networks_from_huobi_many_coin(coins:list) -> dict:
     return dict_with_networks
 
 
-
 # Биржа bitget --------------------------------------------------------------------------------------------------------
-def _get_networks_from_bitget_many_coin():
+def _get_networks_from_bitget_many_coin() -> dict:
     """
     Функция получает список всех сетей для перевода всех монет c биржи bitget
 
@@ -446,11 +458,27 @@ def _get_networks_from_bitget_many_coin():
     - 'browserUrl': 'https://blockchair.com/bitcoin/transaction/' - это ссылка на браузер, где можно посмотреть транзакцию
 
     Функция возвращает словарь вида:
-    {'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.002, 'percentage_fee': 0.0},
-            'BEP20': {'fee': 5.1e-06, 'withdraw_min': 7.8e-06, 'percentage_fee': 0.0}},
-    'USDT': {'OMNI': {'fee': 15.0, 'withdraw_min': 100.0, 'percentage_fee': 0.0}}}
+    {'BTC': [{'network_names': ['BTC'], 'fee': 0.0005, 'withdraw_min': 0.002},
+            {'network_names': ['BEP20'], 'fee': 5.1e-06, 'withdraw_min': 7.8e-06}],
+    'USDT': [{'network_names': ['OMNI'], 'fee': 15.0, 'withdraw_min': 100.0},
+            {'network_names': ['ERC20'], 'fee': 3.0638816, 'withdraw_min': 1.0},
+            {'network_names': ['POLYGON'], 'fee': 1.0, 'withdraw_min': 0.34},
+            {'network_names': ['C-CHAIN'], 'fee': 1.0, 'withdraw_min': 50.0},
+            {'network_names': ['ARBITRUMONE'], 'fee': 0.1, 'withdraw_min': 4.0},
+            {'network_names': ['SOL'], 'fee': 1.0, 'withdraw_min': 2.0},
+            {'network_names': ['OPTIMISM'], 'fee': 1.0, 'withdraw_min': 10.0},
+            {'network_names': ['BEP20'], 'fee': 0.29, 'withdraw_min': 10.0},
+            {'network_names': ['HECO'], 'fee': 0.1, 'withdraw_min': 5.0},
+            {'network_names': ['TRC20'], 'fee': 1.0, 'withdraw_min': 10.0},
+            {'network_names': ['BTTC'], 'fee': 1.0, 'withdraw_min': 1.0}],
+    'ETH': [{'network_names': ['ARBITRUMNOVA'], 'fee': 0.1, 'withdraw_min': 10.0},
+            {'network_names': ['ARBITRUMONE'], 'fee': 0.0001, 'withdraw_min': 0.0008},
+            {'network_names': ['ZKSYNCERA'], 'fee': 0.0003, 'withdraw_min': 0.001},
+            {'network_names': ['ETH'], 'fee': 0.00079, 'withdraw_min': 0.0098},
+            {'network_names': ['OPTIMISM'], 'fee': 0.00032, 'withdraw_min': 0.001},
+            {'network_names': ['BEP20'], 'fee': 8e-05, 'withdraw_min': 0.00011}]}
     """
-    dict_wint_coins_and_networks = {}
+    dict_with_coins_and_networks = {}
     response = ''
 
     try:
@@ -460,22 +488,28 @@ def _get_networks_from_bitget_many_coin():
         data = response['data']
         for row_with_coin in data:
             coin = row_with_coin['coinName'].upper()
-            dict_wint_coins_and_networks[coin] = {}
+            dict_with_coins_and_networks[coin] = []
 
             for row_network in row_with_coin['chains']:
-                network = row_network['chain'].upper()
+                dict_with_network_parameters = {}
+                # название сети
+                network = str(row_network['chain']).upper()
+                dict_with_network_parameters['network_names'] = [network]
+                # комиссия
                 fee = float(row_network['withdrawFee'])
+                dict_with_network_parameters['fee'] = fee
+                # минимальный вывод
                 withdraw_min = float(row_network['minWithdrawAmount'])
-                percentage_fee = 0
-                dict_wint_coins_and_networks[coin][network] = {'fee': fee, 'withdraw_min': withdraw_min,
-                                                               'percentage_fee': percentage_fee}
+                dict_with_network_parameters['withdraw_min'] = withdraw_min
+
+                dict_with_coins_and_networks[coin].append(dict_with_network_parameters)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_bitget_many_coin" произошла ошибка: {e}, ' \
                f'response: {response}'
         logging.error(text)
 
-    return dict_wint_coins_and_networks
+    return dict_with_coins_and_networks
 
 
 # Биржа gate ----------------------------------------------------------------------------------------------------------
