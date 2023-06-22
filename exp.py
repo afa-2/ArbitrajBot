@@ -6,84 +6,90 @@ import hmac
 import logging
 
 
-def _get_networks_from_bitget_many_coin() -> dict:
+def _get_networks_from_gate_many_coin(dict_with_keys: dict) -> dict:
     """
-    Функция получает список всех сетей для перевода всех монет c биржи bitget
-
-    При запросе по API с биржи мы получаем словарь вида:
-    {'code': '00000', 'msg': 'success', 'requestTime': 0,
-    'data': [{'coinId': '1', 'coinName': 'BTC', 'transfer': 'true',
-                'chains': [{'chain': 'BTC', 'needTag': 'false', 'withdrawable': 'true', 'rechargeable': 'true', 'withdrawFee': '0.0005', 'extraWithDrawFee': '0', 'depositConfirm': '1', 'withdrawConfirm': '1', 'minDepositAmount': '0.0001', 'minWithdrawAmount': '0.002', 'browserUrl': 'https://blockchair.com/bitcoin/transaction/'},
-                           {'chain': 'BEP20', 'needTag': 'false', 'withdrawable': 'true', 'rechargeable': 'true', 'withdrawFee': '0.0000051', 'extraWithDrawFee': '0', 'depositConfirm': '15', 'withdrawConfirm': '15', 'minDepositAmount': '0.000001', 'minWithdrawAmount': '0.0000078', 'browserUrl': 'https://bscscan.com/tx/'}]},
-            {'coinId': '2', 'coinName': 'USDT', 'transfer': 'true',
-                'chains': [{'chain': 'OMNI', 'needTag': 'false', 'withdrawable': 'false', 'rechargeable': 'false', 'withdrawFee': '15', 'extraWithDrawFee': '0', 'depositConfirm': '1', 'withdrawConfirm': '1', 'minDepositAmount': '50', 'minWithdrawAmount': '100', 'browserUrl': 'https://www.omniexplorer.info/tx/'}]}]}
+    Функция получает список сетей для множества монет с биржи gate
+    :param dict_with_keys:
+    :param dict_with_keys: словарь с ключами для доступа к API биржи
+    При запросе по API с биржи мы получаем словарь, следующего вида:
+    [{'currency': 'GT', 'name': 'GateToken', 'name_cn': '狗头', 'deposit': '0', 'withdraw_percent': '0%',
+    'withdraw_fix': '0.025', 'withdraw_day_limit': '500000', 'withdraw_day_limit_remain': '499999',
+    'withdraw_amount_mini': '0.125', 'withdraw_eachtime_limit': '499999',
+    'withdraw_fix_on_chains': {'ETH': '0.89', 'GTEVM': '0.002'}},
+    {'currency': 'CNYX', 'name': 'CNHT', 'name_cn': 'CNHT', 'deposit': '0', 'withdraw_percent': '0%',
+    'withdraw_fix': '10', 'withdraw_day_limit': '20000', 'withdraw_day_limit_remain': '19999',
+    'withdraw_amount_mini': '10.1', 'withdraw_eachtime_limit': '19999'}]
 
     Где:
-    - 'coinId': '1' - это id монеты
-    - 'coinName': 'BTC' - это название монеты
-    - 'transfer': 'true' - это параметр, который указывает, можно ли переводить монету на другой адрес
-    - 'chains' - это список сетей, которые можно использовать для перевода монеты
-    - 'chain': 'BTC' - это название сети
-    - 'needTag': 'false' - это параметр, который указывает, нужен ли тег для перевода монеты
-    - 'withdrawable': 'true' - это параметр, который указывает, можно ли переводить монету на другой адрес
-    - 'rechargeable': 'true' - это параметр, который указывает, можно ли пополнять монету
-    - 'withdrawFee': '0.0005' - это комиссия за перевод монеты
-    - 'extraWithDrawFee': '0' - это дополнительная комиссия за перевод монеты
-    - 'depositConfirm': '1' - это количество подтверждений для пополнения монеты
-    - 'withdrawConfirm': '1' - это количество подтверждений для перевода монеты
-    - 'minDepositAmount': '0.0001' - это минимальная сумма для пополнения монеты
-    - 'minWithdrawAmount': '0.002' - это минимальная сумма для перевода монеты
-    - 'browserUrl': 'https://blockchair.com/bitcoin/transaction/' - это ссылка на браузер, где можно посмотреть транзакцию
+    - 'currency': 'GT' - это название монеты
+    - 'name': 'GateToken' - это название монеты
+    - 'name_cn': '狗头' - это название монеты на китайском
+    - 'deposit': '0' - это параметр, который указывает, можно ли пополнить монету
+    - 'withdraw_percent': '0%' - это процент комиссии за вывод монеты
+    - 'withdraw_fix': '0.025' - это фиксированная комиссия за вывод монеты
+    - 'withdraw_day_limit': '500000' - это максимальное количество монет, которое можно вывести за один день
+    - 'withdraw_day_limit_remain': '499999' - это количество монет, которое можно вывести за один день
+    - 'withdraw_amount_mini': '0.125' - это минимальное количество монет, которое можно вывести за один раз
+    - 'withdraw_eachtime_limit': '499999' - это максимальное количество монет, которое можно вывести за один раз
+    - 'withdraw_fix_on_chains': {'ETH': '0.89', 'GTEVM': '0.002'} - это фиксированная комиссия за вывод монеты на сети
 
-    Функция возвращает словарь вида:
-    {'BTC': [{'network_names': ['BTC'], 'fee': 0.0005, 'withdraw_min': 0.002},
-            {'network_names': ['BEP20'], 'fee': 5.1e-06, 'withdraw_min': 7.8e-06}],
-    'USDT': [{'network_names': ['OMNI'], 'fee': 15.0, 'withdraw_min': 100.0},
-            {'network_names': ['ERC20'], 'fee': 3.0638816, 'withdraw_min': 1.0},
-            {'network_names': ['POLYGON'], 'fee': 1.0, 'withdraw_min': 0.34},
-            {'network_names': ['C-CHAIN'], 'fee': 1.0, 'withdraw_min': 50.0},
-            {'network_names': ['ARBITRUMONE'], 'fee': 0.1, 'withdraw_min': 4.0},
-            {'network_names': ['SOL'], 'fee': 1.0, 'withdraw_min': 2.0},
-            {'network_names': ['OPTIMISM'], 'fee': 1.0, 'withdraw_min': 10.0},
-            {'network_names': ['BEP20'], 'fee': 0.29, 'withdraw_min': 10.0},
-            {'network_names': ['HECO'], 'fee': 0.1, 'withdraw_min': 5.0},
-            {'network_names': ['TRC20'], 'fee': 1.0, 'withdraw_min': 10.0},
-            {'network_names': ['BTTC'], 'fee': 1.0, 'withdraw_min': 1.0}],
-    'ETH': [{'network_names': ['ARBITRUMNOVA'], 'fee': 0.1, 'withdraw_min': 10.0},
-            {'network_names': ['ARBITRUMONE'], 'fee': 0.0001, 'withdraw_min': 0.0008},
-            {'network_names': ['ZKSYNCERA'], 'fee': 0.0003, 'withdraw_min': 0.001},
-            {'network_names': ['ETH'], 'fee': 0.00079, 'withdraw_min': 0.0098},
-            {'network_names': ['OPTIMISM'], 'fee': 0.00032, 'withdraw_min': 0.001},
-            {'network_names': ['BEP20'], 'fee': 8e-05, 'withdraw_min': 0.00011}]}
+    Функция возвращает словарь типа
+    {'BTC': [{'network_names': ['BTC'], 'fee': 0.001, 'withdraw_min': 0.011},
+            {'network_names': ['BSC'], 'fee': 0.00014, 'withdraw_min': 0.011},
+            {'network_names': ['HT'], 'fee': 1.7e-05, 'withdraw_min': 0.011}],
+    'ETH': [{'network_names': ['ETH'], 'fee': 0.0018, 'withdraw_min': 0.0118},
+            {'network_names': ['ARBNOVA'], 'fee': 0.002, 'withdraw_min': 0.0118},
+            {'network_names': ['ZKSERA'], 'fee': 0.002, 'withdraw_min': 0.0118},
+            {'network_names': ['OPETH'], 'fee': 0.002, 'withdraw_min': 0.0118}]}
     """
+    def gen_sign(method, url, query_string=None, payload_string=None):
+        key = dict_with_keys['gate']['api_key']       # api_key
+        secret = dict_with_keys['gate']['secret_key']    # api_secret
+
+        t = time.time()
+        m = hashlib.sha512()
+        m.update((payload_string or "").encode('utf-8'))
+        hashed_payload = m.hexdigest()
+        s = '%s\n%s\n%s\n%s\n%s' % (method, url, query_string or "", hashed_payload, t)
+        sign = hmac.new(secret.encode('utf-8'), s.encode('utf-8'), hashlib.sha512).hexdigest()
+        return {'KEY': key, 'Timestamp': str(t), 'SIGN': sign}
+
     dict_with_coins_and_networks = {}
     response = ''
 
     try:
-        url = f'https://api.bitget.com/api/spot/v1/public/currencies'
-        response = requests.get(url).json()
+        host = "https://api.gateio.ws"
+        prefix = "/api/v4"
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
-        data = response['data']
-        for row_with_coin in data:
-            coin = row_with_coin['coinName'].upper()
+        url = '/wallet/withdraw_status'
+        query_param = ''
+        # for `gen_sign` implementation, refer to section `Authentication` above
+        sign_headers = gen_sign('GET', prefix + url, query_param)
+        headers.update(sign_headers)
+        response = requests.request('GET', host + prefix + url, headers=headers)
+        data = response.json()
+
+        for row in data:
+            coin = row['currency'].upper()
             dict_with_coins_and_networks[coin] = []
+            if 'withdraw_fix_on_chains' in row:
+                for network in row['withdraw_fix_on_chains']:
+                    dict_with_parameters = {}
+                    # название сети
+                    network_name = str(network).upper()
+                    dict_with_parameters['network_names'] = [network_name]
+                    # комиссия
+                    fee = float(row['withdraw_fix_on_chains'][network])
+                    dict_with_parameters['fee'] = fee
+                    # минимальная сумма вывода
+                    withdraw_min = float(row['withdraw_amount_mini'])
+                    dict_with_parameters['withdraw_min'] = withdraw_min
 
-            for row_network in row_with_coin['chains']:
-                dict_with_network_parameters = {}
-                # название сети
-                network = str(row_network['chain']).upper()
-                dict_with_network_parameters['network_names'] = [network]
-                # комиссия
-                fee = float(row_network['withdrawFee'])
-                dict_with_network_parameters['fee'] = fee
-                # минимальный вывод
-                withdraw_min = float(row_network['minWithdrawAmount'])
-                dict_with_network_parameters['withdraw_min'] = withdraw_min
-
-                dict_with_coins_and_networks[coin].append(dict_with_network_parameters)
+                    dict_with_coins_and_networks[coin].append(dict_with_parameters)
 
     except Exception as e:
-        text = f'При выполнении функции "_get_networks_from_bitget_many_coin" произошла ошибка: {e}, ' \
+        text = f'При выполнении функции "_get_networks_from_gate_many_coin" произошла ошибка: {e}' \
                f'response: {response}'
         logging.error(text)
 
@@ -102,7 +108,7 @@ dict_with_keys = {'bybit': {'api_key': 'V1IkiWjudAPBY7xsdc', 'secret_key': 'fLPt
                   'gate': {'api_key': '90323691e2d247ab1f7bccbf187e6567', 'secret_key': 'a4b8540fc1d95822f79dcf362103e0e253805dd693befb8c0193dddd65384fad'}}
 
 
-res = _get_networks_from_bitget_many_coin()
+res = _get_networks_from_gate_many_coin(dict_with_keys)
 
 print('-----------------------------------')
 print(res)

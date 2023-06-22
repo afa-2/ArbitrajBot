@@ -526,6 +526,7 @@ def _get_networks_from_gate_many_coin(dict_with_keys: dict) -> dict:
     {'currency': 'CNYX', 'name': 'CNHT', 'name_cn': 'CNHT', 'deposit': '0', 'withdraw_percent': '0%',
     'withdraw_fix': '10', 'withdraw_day_limit': '20000', 'withdraw_day_limit_remain': '19999',
     'withdraw_amount_mini': '10.1', 'withdraw_eachtime_limit': '19999'}]
+
     Где:
     - 'currency': 'GT' - это название монеты
     - 'name': 'GateToken' - это название монеты
@@ -540,10 +541,13 @@ def _get_networks_from_gate_many_coin(dict_with_keys: dict) -> dict:
     - 'withdraw_fix_on_chains': {'ETH': '0.89', 'GTEVM': '0.002'} - это фиксированная комиссия за вывод монеты на сети
 
     Функция возвращает словарь типа
-    {'ETH': {'ETH': {'fee': 0.0019, 'withdraw_min': 0.0019, 'percentage_fee': 0.0},
-            'ARBI': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0},
-            'BSC': {'fee': 0.0003, 'withdraw_min': 0.0003, 'percentage_fee': 0.0}},
-     'BTC': {'BTC': {'fee': 0.0005, 'withdraw_min': 0.0005, 'percentage_fee': 0.0}}}
+    {'BTC': [{'network_names': ['BTC'], 'fee': 0.001, 'withdraw_min': 0.011},
+            {'network_names': ['BSC'], 'fee': 0.00014, 'withdraw_min': 0.011},
+            {'network_names': ['HT'], 'fee': 1.7e-05, 'withdraw_min': 0.011}],
+    'ETH': [{'network_names': ['ETH'], 'fee': 0.0018, 'withdraw_min': 0.0118},
+            {'network_names': ['ARBNOVA'], 'fee': 0.002, 'withdraw_min': 0.0118},
+            {'network_names': ['ZKSERA'], 'fee': 0.002, 'withdraw_min': 0.0118},
+            {'network_names': ['OPETH'], 'fee': 0.002, 'withdraw_min': 0.0118}]}
     """
     def gen_sign(method, url, query_string=None, payload_string=None):
         key = dict_with_keys['gate']['api_key']       # api_key
@@ -575,14 +579,21 @@ def _get_networks_from_gate_many_coin(dict_with_keys: dict) -> dict:
 
         for row in data:
             coin = row['currency'].upper()
-            dict_with_coins_and_networks[coin] = {}
+            dict_with_coins_and_networks[coin] = []
             if 'withdraw_fix_on_chains' in row:
                 for network in row['withdraw_fix_on_chains']:
+                    dict_with_parameters = {}
+                    # название сети
+                    network_name = str(network).upper()
+                    dict_with_parameters['network_names'] = [network_name]
+                    # комиссия
                     fee = float(row['withdraw_fix_on_chains'][network])
+                    dict_with_parameters['fee'] = fee
+                    # минимальная сумма вывода
                     withdraw_min = float(row['withdraw_amount_mini'])
-                    percentage_fee = float(row['withdraw_percent'].replace('%', '')) / 100
-                    dict_with_coins_and_networks[coin][network.upper()] = {'fee': fee, 'withdraw_min': withdraw_min,
-                                                                   'percentage_fee': percentage_fee}
+                    dict_with_parameters['withdraw_min'] = withdraw_min
+
+                    dict_with_coins_and_networks[coin].append(dict_with_parameters)
 
     except Exception as e:
         text = f'При выполнении функции "_get_networks_from_gate_many_coin" произошла ошибка: {e}' \
@@ -603,18 +614,22 @@ def get_networks_for_transfer_coins(dict_with_keys:dict, coins:list) -> dict:
 
     Возвращаемый словарь имеет вид:
     {'last_update': datetime.datetime(2023, 6, 21, 16, 8, 47, 390196),
-    'bybit': {'BTC':
-                 {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
-                 'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
-                 'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
-             'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
-             'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
-    'mexc': {'BTC':
-             {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
-             'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
-             'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
-         'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
-         'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
+    'bybit': {'BTC': [{'network_names': ['BTC'], 'fee': 0.0005, 'withdraw_min': 0.002},
+                    {'network_names': ['BEP20'], 'fee': 5.1e-06, 'withdraw_min': 7.8e-06}],
+            'USDT': [{'network_names': ['OMNI'], 'fee': 15.0, 'withdraw_min': 100.0},
+                    {'network_names': ['ERC20'], 'fee': 3.0638816, 'withdraw_min': 1.0},
+                    {'network_names': ['BTTC'], 'fee': 1.0, 'withdraw_min': 1.0}],
+            'ETH': [{'network_names': ['ARBITRUMNOVA'], 'fee': 0.1, 'withdraw_min': 10.0},
+                    {'network_names': ['ARBITRUMONE'], 'fee': 0.0001, 'withdraw_min': 0.0008},
+                    {'network_names': ['BEP20'], 'fee': 8e-05, 'withdraw_min': 0.00011}]},
+    'mexc': {'BTC': [{'network_names': ['BTC'], 'fee': 0.0005, 'withdraw_min': 0.002},
+                    {'network_names': ['BEP20'], 'fee': 5.1e-06, 'withdraw_min': 7.8e-06}],
+            'USDT': [{'network_names': ['OMNI'], 'fee': 15.0, 'withdraw_min': 100.0},
+                    {'network_names': ['ERC20'], 'fee': 3.0638816, 'withdraw_min': 1.0},
+                    {'network_names': ['BTTC'], 'fee': 1.0, 'withdraw_min': 1.0}],
+            'ETH': [{'network_names': ['ARBITRUMNOVA'], 'fee': 0.1, 'withdraw_min': 10.0},
+                    {'network_names': ['ARBITRUMONE'], 'fee': 0.0001, 'withdraw_min': 0.0008},
+                    {'network_names': ['BEP20'], 'fee': 8e-05, 'withdraw_min': 0.00011}]},
     }
     """
 
