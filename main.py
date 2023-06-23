@@ -112,26 +112,7 @@ def main_script(first_message):
         # пробуем получить словарь с сетями из файла
         try:
             dict_with_networks = _get_networks_from_file()
-            last_update = dict_with_networks['last_import configparser
-
-
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-# разные названия одной и тойже сети
-matching_networks = config.get('settings', 'matching_networks').strip()
-
-# Удалить пробелы и переносы строк
-matching_networks = matching_networks.replace(" ", "")
-matching_networks = matching_networks.replace("\n", "")
-
-# Разбить список на двумерный список
-matching_networks = matching_networks.strip('][').split('],[')
-list_matching_networks_from_config = [sub.split(',') for sub in matching_networks]
-
-for i in list_matching_networks_from_config:
-    for j in i:
-        print(j)update']
+            last_update = dict_with_networks['last_update']
         except:  # если не получилось, создаем словарь по новой
             network_last_update = '2023-01-10 18:26:47.204538'
             dict_with_networks = {'last_update': network_last_update}  # в словарь сразу отправляем тип datatime
