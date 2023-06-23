@@ -88,6 +88,17 @@ def main_script(first_message):
 
         currencies = new_list
 
+        # разные названия одной и тойже сети
+        matching_networks = config.get('settings', 'matching_networks').strip()
+
+        # Удалить пробелы и переносы строк
+        matching_networks = matching_networks.replace(" ", "")
+        matching_networks = matching_networks.replace("\n", "")
+
+        # Разбить список на двумерный список
+        matching_networks = matching_networks.strip('][').split('],[')
+        list_matching_networks_from_config = [sub.split(',') for sub in matching_networks]
+
         # Логирование -------------------------------------------------------------------------------------------------
         logging.basicConfig(
             level=logging.INFO,  # Уровень логирования
@@ -148,7 +159,7 @@ def main_script(first_message):
                 all_orders_from_all_exchanges = all_list_from_all_stock_market(currency)
                 # обрабатываем сырые данные, находим выгодные предложения, считаем маржу,
                 # формируем массив с релевантными данными
-                all_orders = data_processing(all_orders_from_all_exchanges, dict_with_networks)
+                all_orders = data_processing(all_orders_from_all_exchanges, dict_with_networks, list_matching_networks_from_config, currency)
 
                 if len(all_orders) > 0:  # если ордеров больше 0
                     for order in all_orders:  # в отношении каждого ордера
@@ -178,37 +189,11 @@ def main_script(first_message):
                             if publish_without_networks == 'Yes' \
                                     or (publish_without_networks == 'No' and len(order['matching_networks']) > 0):
 
-                                # формируем спсок из всех ордеров на проаджу
-                                # text_orders_sell = ''
-                                # for order_sell in orders_sell:  # в отношении каждого ордера на продажу
-                                #     string = f'Цена: {order_sell[2]}, кол-во: {order_sell[3]}\n'
-                                #     text_orders_sell += string
-
                                 all_prices_orders_sell = [order[2] for order in orders_sell]
                                 min_price_orders_sell = min(all_prices_orders_sell)
                                 max_price_orders_sell = max(all_prices_orders_sell)
 
                                 # формируем сообщение
-                                # message = f"Пара: <b>{currency}/USDT</b>\n\n" \
-                                #           f"" \
-                                #           f"✅Покупка: <b><a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a></b>\n\n" \
-                                #           f"" \
-                                #           f"Выкупить объем: <b>{round(need_bought, 4)} {currency}</b>\n" \
-                                #           f"{text_orders_sell}" \
-                                #           f"Потратив <b>{round(need_spent_on_coins, 2)} USDT</b>\n\n" \
-                                #           f"" \
-                                #           f"🔻Продажа: <b><a href='{name_exchange_where_sell}'>{order_buy[0]}</a></b>\n" \
-                                #           f"Продать: {order_buy[4]} {currency}\n" \
-                                #           f"По цене: {order_buy[3]} USDT\n\n" \
-                                #           f"" \
-                                #           f"📊 Спред: {profit}%\n" \
-                                #           f"💲 Профит: {profit_in_dol}$\n\n\n\n" \
-                                #           f"Для проверки:\n\n" \
-                                #           f"Все совпадающие сети кол-во {len(order['matching_networks'])}\n" \
-                                #           f"Список совпадающих сетей: {order['matching_networks']}\n" \
-                                #           f"Самая выгодная сеть: {order['network_with_min_fee']}\n" \
-                                #           f"Сети биржи 1: {dict_with_networks[name_exchange_where_buy][currency]}\n" \
-                                #           f"Сети биржи 2: {dict_with_networks[name_exchange_where_sell][currency]}\n"
 
                                 str_names_network = ', '.join(names_network)  # объединяем элементы списка через запятую и пробел
 

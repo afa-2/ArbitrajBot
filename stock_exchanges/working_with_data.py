@@ -116,7 +116,7 @@ def return_networks_for_exchange_and_coin(dict_with_networks: dict, name_exchang
         {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
         {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}]
     """
-    networks = {}
+    networks = []
     if name_exchange in dict_with_networks:
         if coin in dict_with_networks[name_exchange]:
             networks = dict_with_networks[name_exchange][coin].copy()
@@ -124,25 +124,34 @@ def return_networks_for_exchange_and_coin(dict_with_networks: dict, name_exchang
     return networks
 
 
-def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, name_exchange_2: str, coin: str) -> list:
+def _add_additional_network_names_to_the_list_of_names(dict_with_network: dict, list_matching_networks_from_config: list) -> dict:
+    """
+    Функция получает:
+    dict_with_network - Словарь с параметрами сети: {'network_names': ['ETH', 'ETH2'], 'fee': 0.001, 'withdraw_min': 0.01}
+    list_matching_networks_from_config - Список совпадений названий: пример: [['BEP20(BSC)', 'BSC'], ['ERC20', 'ETH']]
+
+    Функция берет каждое название из параметра сети и ищет совпадения в списке совпадающих назнваний. Если нашла, то все
+    совпадающие названия переносятся в парамерт network_names
+
+    Обратно возвращается тот же словарь, но с дополненными названиями
+    {'network_names': ['ETH', 'ETH2', 'ERC20'], 'fee': 0.001, 'withdraw_min': 0.01}
+    """
+
+    dict_with_network = dict_with_network.copy()
+    for network_name in dict_with_network['network_names']:
+        for list_networks_name in list_matching_networks_from_config:
+            if network_name in list_networks_name:
+                for additional_network_name in list_networks_name:
+                    if additional_network_name not in dict_with_network['network_names']:
+                        dict_with_network['network_names'].append(additional_network_name)
+
+    return dict_with_network
+
+
+def _search_matching_networks(dict_with_networks: dict, list_matching_networks_from_config: list, name_exchange_1: str, name_exchange_2: str, coin: str) -> list:
     """
     Получаем
-    1) словарь следующего вида (dict_with_networks):
-    {'last_update': datetime.datetime(2023, 6, 21, 16, 8, 47, 390196),
-    'bybit': {'BTC':
-                 {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
-                 'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
-                 'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
-             'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
-             'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
-    'mexc': {'BTC':
-             {'BTC': {'fee': 0.0003, 'withdraw_min': 0.001, 'percentage_fee': 0},
-             'BEP20(BSC)': {'fee': 1e-05, 'withdraw_min': 0.0001, 'percentage_fee': 0},
-             'TRC20': {'fee': 0.0001, 'withdraw_min': 0.001, 'percentage_fee': 0}},
-         'DOGE': {'DOGE': {'fee': 5.0, 'withdraw_min': 25.0, 'percentage_fee': 0.0}},
-         'LTC': {'LTC': {'fee': 0.001, 'withdraw_min': 0.1, 'percentage_fee': 0.0}}},
-    }
-
+    dict_with_networks - словарь следующего вида:
     {'last_update': datetime.datetime(2023, 6, 21, 16, 8, 47, 390196),
     'bybit': {'BTC': [{'network_names': ['BTC'], 'fee': 0.0005, 'withdraw_min': 0.002},
                     {'network_names': ['BEP20'], 'fee': 5.1e-06, 'withdraw_min': 7.8e-06}],
@@ -162,9 +171,10 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
                     {'network_names': ['BEP20'], 'fee': 8e-05, 'withdraw_min': 0.00011}]},
     }
 
-    2) Биржа 1
-    3) Биржа 2
-    4) Название валюты
+    list_matching_networks_from_config - список совпадений названий бирж из конфиг файла
+    name_exchange_1 Биржа 1
+    name_exchange_2 Биржа 2
+    coin - Название валюты
 
     Ищем совпадения валют в словаре с биржами. Возвращаем список с совпадениями валют.
 
@@ -180,18 +190,17 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
     # сети с биржи 2
     networks_on_exchange_2 = return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_2, coin)
 
-    # [{'network_names': ['OPTIMISM', 'OPTIMISM'], 'fee': 0.001, 'withdraw_min': 0.01},
-    #  {'network_names': ['ERC20', 'ETH'], 'fee': 0.005, 'withdraw_min': 0.01},
-    #  {'network_names': ['KCC', 'KCC'], 'fee': 0.0002, 'withdraw_min': 0.01},
-    #  {'network_names': ['TRC20', 'TRX'], 'fee': 0.0005, 'withdraw_min': 0.002},
-    #  {'network_names': ['ARBITRUM', 'ARBITRUM'], 'fee': 0.001, 'withdraw_min': 0.001}]
+    # к списку имеющихся сетей, добавляем названия, если найдем в списке совпадений (одна сеть, разные назания)
 
     #  ищем совпадения по сетям и подбираем самую выгодную
     list_networks_matches = []  # список совпадающих сетей
 
-    for network_exchange_1 in networks_on_exchange_1:
-        for network_name_from_exchange_1 in network_exchange_1['network_names']:
+    for network_exchange_1 in networks_on_exchange_1:  # в отношении каждой сети с биржи 1
+        # в список названий сети добавляем названия из нашего списка (сеть одна, названий много)
+        network_exchange_1 = _add_additional_network_names_to_the_list_of_names(network_exchange_1, list_matching_networks_from_config)
+        for network_name_from_exchange_1 in network_exchange_1['network_names']:  # в отношении каждого названия сети
             for network_exchange_2 in networks_on_exchange_2:
+                network_exchange_2 = _add_additional_network_names_to_the_list_of_names(network_exchange_2, list_matching_networks_from_config)
                 if network_name_from_exchange_1 in network_exchange_2['network_names']:
                     # названия сети с первой биржи
                     network_names_from_exchange_1 = network_exchange_1['network_names']
@@ -219,7 +228,7 @@ def _search_matching_networks(dict_with_networks: dict, name_exchange_1: str, na
     return list_networks_matches
 
 
-def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_networks: dict) -> dict:
+def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, list_with_matching_networks: list, coin: str) -> dict:
     """
     Получаем ордер на покупку и список ордеров на продажу (
     Например:
@@ -228,6 +237,9 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
          ['bybit', 'https://www.bybit.com/ru-RU/trade/spot/BTC/USDT', '27005.3', 0.3]
         ]
     )
+
+    list_with_matching_networks - список совпадающих сетей
+
     Считаем маржу в процентах и долларах и отсеиваем лишние ордера
     Принцип работы:
     берем необходимое количество монет из ордера на продажу и берем столько ордеров на продажу, что бы перекрывало потребность,
@@ -247,9 +259,8 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
     order_buy = order_buy_and_orders_sell['order_buy']  # ордер на покупку
     dict_with_result['order_buy'] = order_buy
     name_exchange_where_buy = order_buy[0]  # название биржи, на которой надо купить
-    name_coin = order_buy[2]  # название монеты
+    name_coin = coin  # название монеты
     name_coin = name_coin.upper()  # переводим в верхний регистр
-    name_coin = name_coin.replace('_USDT', '')  # убираем нижнее подчеркивание и usdt
 
     price_order_buy = float(order_buy[3])  # цена одной монеты в ордере на покупку
     quantity_order_buy = float(order_buy[4])  # количество монет в ордере на покупку
@@ -277,7 +288,7 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
 
     # получаем совпадающие сети в обоих биржах
     dict_with_result['matching_networks'] = []
-    list_with_matching_networks = _search_matching_networks(dict_with_networks, name_exchange_where_buy, name_exchange_where_sell, name_coin)
+
     for matching_networks in list_with_matching_networks:
         dict_with_result['matching_networks'].append(matching_networks.copy())
     # выбираем сеть с самой низкой комиссией
@@ -326,7 +337,7 @@ def _calculate_margin_filter_order(order_buy_and_orders_sell: dict, dict_with_ne
     return dict_with_result
 
 
-def data_processing(list_all_list_from_all_stock_market: list, dict_with_networks: dict) -> list:
+def data_processing(list_all_list_from_all_stock_market: list, dict_with_networks: dict, list_matching_networks_from_config: list, coin: str) -> list:
     """
     Функция обрабатывает "сырые данные". Мы получаем массив с ордерами на продажу и покупку валюты с разных бирж и
     функция обрабатывает этот массив.
@@ -359,6 +370,10 @@ def data_processing(list_all_list_from_all_stock_market: list, dict_with_network
       ]
      ]
     ]
+
+    dict_with_networks - словарь с биржами, монетами и сетями, отнсящиеся к этим монетам
+    list_matching_networks_from_config - список совпадений названий бирж из конфиг файла
+    coin - валюта
 
     Принцип работы:
     Функция принимает сырые данные, ищет релевантные предложения, где цена в ордере на продажу с одной биржи больше цены
@@ -404,9 +419,12 @@ def data_processing(list_all_list_from_all_stock_market: list, dict_with_network
     orders_sell_and_orders_by = _searching_currency_differences(list_all_list_from_all_stock_market)
 
     # в отношении каждого ордера на покупку и относящихся к нему ордеров на продажу
+
     for order_sell_and_orders_by in orders_sell_and_orders_by:
+        # получаем совпадающие сети
+        list_with_matching_networks = _search_matching_networks(dict_with_networks, list_matching_networks_from_config, order_sell_and_orders_by['order_buy'][0], order_sell_and_orders_by['orders_sell'][0][0], coin)
         # считаем маржу в процентах и долларах и отсеиваем лишние ордера
-        dict_with_result = _calculate_margin_filter_order(order_sell_and_orders_by, dict_with_networks)
+        dict_with_result = _calculate_margin_filter_order(order_sell_and_orders_by, list_with_matching_networks, coin)
         # добавляем в список ордеров
         list_of_orders.append(dict_with_result)
 

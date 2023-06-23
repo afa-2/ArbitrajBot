@@ -1,28 +1,31 @@
-import json
+
+def _add_additional_network_names_to_the_list_of_names(dict_with_network: dict, list_matching_networks: list) -> dict:
+    """
+    Функция получает:
+    Словарь с параметрами сети: {'network_names': ['ETH', 'ETH2'], 'fee': 0.001, 'withdraw_min': 0.01}
+    Список совпадений названий: пример: [['BEP20(BSC)', 'BSC'], ['ERC20', 'ETH']]
+
+    Функция берет каждое название из параметра сети и ищет совпадения в списке совпадающих назнваний. Если нашла, то все
+    совпадающие названия переносятся в парамерт network_names
+
+    Обратно возвращается тот же словарь, но с дополненными названиями
+    {'network_names': ['ETH', 'ETH2', 'ERC20'], 'fee': 0.001, 'withdraw_min': 0.01}
+    """
+
+    dict_with_network = dict_with_network.copy()
+    for network_name in dict_with_network['network_names']:
+        for list_networks_name in list_matching_networks:
+            if network_name in list_networks_name:
+                for additional_network_name in list_networks_name:
+                    if additional_network_name not in dict_with_network['network_names']:
+                        dict_with_network['network_names'].append(additional_network_name)
+
+    return dict_with_network
 
 
-def _get_networks_from_file():
-    file_path = 'networks.json'
-    with open(file_path) as f:
-        dict_with_networks = json.load(f)
-    return dict_with_networks
 
+dict_with_network = {'network_names': ['ETH', 'ETH2'], 'fee': 0.001, 'withdraw_min': 0.01}
+list_matching_networks = [['BEP20(BSC)', 'BSC'], ['ERC20', 'ETH', 'BLA']]
 
-dict_with_networks = _get_networks_from_file()
-
-exchanges = ['bybit', 'mexc', 'kucoin', 'huobi', 'gate', 'bitget']
-
-exchange = 'bitget'
-
-dict_with_networks = dict_with_networks[exchange]
-
-list_with_networks = []
-for coin in dict_with_networks:
-    all_with_networks_for_this_coin = dict_with_networks[coin]
-    for row_networks in all_with_networks_for_this_coin:
-        for networks_name in row_networks['network_names']:
-            if networks_name not in list_with_networks:
-                list_with_networks.append(networks_name)
-
-for i in list_with_networks:
-    print(i)
+res = _add_additional_network_names_to_the_list_of_names(dict_with_network, list_matching_networks)
+print(res)
