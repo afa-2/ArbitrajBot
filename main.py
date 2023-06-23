@@ -112,7 +112,26 @@ def main_script(first_message):
         # пробуем получить словарь с сетями из файла
         try:
             dict_with_networks = _get_networks_from_file()
-            last_update = dict_with_networks['last_update']
+            last_update = dict_with_networks['last_import configparser
+
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# разные названия одной и тойже сети
+matching_networks = config.get('settings', 'matching_networks').strip()
+
+# Удалить пробелы и переносы строк
+matching_networks = matching_networks.replace(" ", "")
+matching_networks = matching_networks.replace("\n", "")
+
+# Разбить список на двумерный список
+matching_networks = matching_networks.strip('][').split('],[')
+list_matching_networks_from_config = [sub.split(',') for sub in matching_networks]
+
+for i in list_matching_networks_from_config:
+    for j in i:
+        print(j)update']
         except:  # если не получилось, создаем словарь по новой
             network_last_update = '2023-01-10 18:26:47.204538'
             dict_with_networks = {'last_update': network_last_update}  # в словарь сразу отправляем тип datatime
@@ -199,7 +218,7 @@ def main_script(first_message):
 
                                 message = f"<a href='{name_exchange_where_buy}'>{orders_sell[0][0]}</a> -> <a href='{name_exchange_where_sell}'>{order_buy[0]}</a> | <b>{currency}/USDT</b>\n\n" \
                                           f"✅  <b>Покупка</b>\n\n" \
-                                          f"<b>Объем:</b> {round(need_spent_on_coins, 2)} -> {round(need_bought, 4)} {currency}\n" \
+                                          f"<b>Объем:</b> {round(need_spent_on_coins, 2)} USDT -> {round(need_bought, 4)} {currency}\n" \
                                           f"<b>Цена:</b> {min_price_orders_sell} - {max_price_orders_sell}\n\n" \
                                           f"🔻 <b>Продажа</b>\n\n" \
                                           f"<b>Объем:</b> {order_buy[4]} {currency} -> {income_from_sale_coins} USDT\n" \
