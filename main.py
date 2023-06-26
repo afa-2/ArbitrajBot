@@ -28,6 +28,20 @@ def _get_networks_from_file():
     return dict_with_networks
 
 
+def show_chat_id():
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    api = config.get('keys', 'api_key').strip()
+    bot = telebot.TeleBot(api)
+
+    @bot.message_handler(content_types=['text'])
+    def send_chat_id(message):
+        bot.send_message(message.chat.id, message.chat.id)
+
+    bot.infinity_polling()
+
+
+
 def main_script(first_message):
     try:
         # Настройки ---------------------------------------------------------------------------------------------------
@@ -234,8 +248,11 @@ def main_script(first_message):
         main_script(f'Перезапуск после ошибки')
 
 
-main_script('первый запуск')
+# main_script('первый запуск')
 
-#bot.infinity_polling()
+show_chat_id()
+
+
+
 
 
