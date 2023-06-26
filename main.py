@@ -208,12 +208,12 @@ def main_script(first_message):
                                           f"<b>Спред:</b> {profit}%\n\n" \
                                           f"📩 <b>Перевод:</b>\n" \
                                           f"<b>Сеть:</b> {str_names_network}\n" \
-                                          f"<b>Комиссия:</b> {network_fee_in_coin} {currency} ({network_fee_in_dollars} $)\n\n\n" \
-                                          f"Для проверки:\n\n" \
-                                          f"Кол-во совпадающих сетей: {len(order['matching_networks'])}\n\n" \
-                                          f"Самая выгодная сеть: {order['network_with_min_fee']}\n\n" \
-                                          f"Сети биржи 1: {return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_where_buy, currency)}\n\n"\
-                                          f"Сети биржи 2: {return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_where_sell, currency)}\n\n"
+                                          f"<b>Комиссия:</b> {network_fee_in_coin} {currency} ({network_fee_in_dollars} $)\n\n\n"
+                                          # f"Для проверки:\n\n" \
+                                          # f"Кол-во совпадающих сетей: {len(order['matching_networks'])}\n\n" \
+                                          # f"Самая выгодная сеть: {order['network_with_min_fee']}\n\n" \
+                                          # f"Сети биржи 1: {return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_where_buy, currency)}\n\n"\
+                                          # f"Сети биржи 2: {return_networks_for_exchange_and_coin(dict_with_networks, name_exchange_where_sell, currency)}\n\n"
 
                                 _send_message(bot, chats_list, message)
 
