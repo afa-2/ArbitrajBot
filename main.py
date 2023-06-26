@@ -248,9 +248,9 @@ def main_script(first_message):
         main_script(f'Перезапуск после ошибки')
 
 
-# main_script('первый запуск')
+main_script('первый запуск')
 
-show_chat_id()
+#show_chat_id()
 
 
 
